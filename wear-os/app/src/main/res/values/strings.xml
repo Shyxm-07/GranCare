@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Gran Care</string>
+    <string name="channel_alarm">Medication alarms</string>
+</resources>
