@@ -20,6 +20,7 @@ const SCREENS = [
   ['smartwatch-alarm', 'Smartwatch Alarm', '01-smartwatch-alarm.html'],
   ['smartwatch-dose-alert', 'Smartwatch Dose Alert', '02-smartwatch-dose-alert.html'],
   ['caretaker-dashboard', 'Caretaker Dashboard', '07-caretaker-dashboard.html'],
+  ['profile', 'Profile', '08-profile.html'],
 ];
 
 const TW = JSON.parse(fs.readFileSync('twidths.json', 'utf8'));
@@ -94,12 +95,28 @@ for (const [fam, pkg, sub] of [['Noto Sans Devanagari', 'noto-sans-devanagari', 
 const lib = fs.readFileSync('assets/liberation-serif-italic.woff2').toString('base64');
 fontCss += `@font-face{font-family:'Liberation Serif';font-style:italic;font-weight:400;font-display:block;src:url(data:font/woff2;base64,${lib}) format('woff2');}\n`;
 
+// `node build.js --app` builds the Android (Capacitor) version: a full HTML document,
+// no prototype screen switcher, the on-phone backend and the native bridge.
+const APP = process.argv.includes('--app');
+const OUT = APP ? 'dist-app' : 'dist';
+const js = (f) => jsAscii(fs.readFileSync(f, 'utf8'));
+const capCore = () => {
+  const p = '../node_modules/@capacitor/core/dist/capacitor.js';
+  return fs.existsSync(p) ? js(p) : '';
+};
+const appHead = `<!doctype html><html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#f7f9ff"><title>Gran Care</title>`;
+const appCss = `.viewer-bar{display:none!important}.viewer-stage{padding:0;overflow-x:hidden;zoom:var(--gc-scale,1)}
+.screen{box-shadow:none;margin:0}html,body{background:#f7f9ff;margin:0;-webkit-tap-highlight-color:transparent}
+body{padding-top:env(safe-area-inset-top);padding-bottom:env(safe-area-inset-bottom)}`;
 const jsAscii = (s) => s.replace(/[^\x00-\x7f]/g, c => '\\u' + c.charCodeAt(0).toString(16).padStart(4, '0'));
-const shell = (css) => `<title>Gran Care Prototype</title>
+const shell = (css) => `${APP ? appHead : '<title>Gran Care Prototype</title>'}
 <style>
 ${fontCss}
 ${css}
-</style>
+${APP ? appCss : ''}
+</style>${APP ? '</head><body class="gc-app">' : ''}
 <header class="viewer-bar" role="tablist" aria-label="Prototype screens">${nav}</header>
 <main class="viewer-stage">
 ${screensHtml}
@@ -120,19 +137,27 @@ ${screensHtml}
   }
   window.__showScreen=function(slug){ try{history.replaceState(null,'','#'+slug);}catch(e){} show(slug); };
   btns.forEach(function(b){b.addEventListener('click',function(){ window.__showScreen(b.dataset.target);});});
-  show((location.hash||'').slice(1));
+  var start=(location.hash||'').slice(1);
+  try{ if(!start && document.body.classList.contains('gc-app')) start=localStorage.getItem('gc.home')||''; }catch(e){}
+  show(start);
   window.addEventListener('hashchange',function(){show(location.hash.slice(1));});
 })();
 </script>
+${APP ? '<script>' + capCore() + '</script>' : ''}
 <script>
-${jsAscii(fs.readFileSync('i18n.js','utf8'))}
-${jsAscii(fs.readFileSync('watch.js','utf8'))}
-${jsAscii(fs.readFileSync('app.js','utf8'))}
-</script>`;
+${APP ? js('standalone.js') : ''}
+${js('i18n.js')}
+${js('watch.js')}
+${js('escalation.js')}
+${js('app.js')}
+${js('profile.js')}
+${APP ? js('native.js') : ''}
+</script>${APP ? '</body></html>' : ''}`;
 
-fs.mkdirSync('dist', { recursive: true });
-fs.writeFileSync('dist/_content.html', shell(''));
-execSync('npx tailwindcss -c tailwind.config.js -i input.css -o dist/_tw.css --minify', { stdio: 'inherit' });
-const css = fs.readFileSync('dist/_tw.css', 'utf8');
-fs.writeFileSync('dist/index.html', shell(css));
-console.log('built dist/index.html', (fs.statSync('dist/index.html').size / 1024).toFixed(0) + 'KB');
+fs.mkdirSync(OUT, { recursive: true });
+fs.writeFileSync(OUT + '/_content.html', shell(''));
+execSync('npx tailwindcss -c tailwind.config.js -i input.css -o ' + OUT + '/_tw.css --minify', { stdio: 'inherit' });
+const css = fs.readFileSync(OUT + '/_tw.css', 'utf8');
+fs.writeFileSync(OUT + '/index.html', shell(css));
+for (const f of ['_content.html', '_tw.css']) fs.rmSync(OUT + '/' + f, { force: true });
+console.log('built ' + OUT + '/index.html', (fs.statSync(OUT + '/index.html').size / 1024).toFixed(0) + 'KB');
