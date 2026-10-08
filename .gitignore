@@ -1,0 +1,11 @@
+node_modules/
+web/dist/
+web/dist-app/
+**/build/
+.gradle/
+local.properties
+*.keystore
+*.jks
+.idea/
+*.iml
+.DS_Store

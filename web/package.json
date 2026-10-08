@@ -1,0 +1,21 @@
+{
+  "name": "gran-care-web",
+  "version": "1.0.0",
+  "description": "Gran Care medication-reminder app (web UI built from the Figma design)",
+  "scripts": {
+    "build": "node build.js",
+    "build:app": "node build.js --app"
+  },
+  "license": "UNLICENSED",
+  "devDependencies": {
+    "@fontsource/inter": "^5.3.0",
+    "@fontsource/newsreader": "^5.3.0",
+    "@fontsource/plus-jakarta-sans": "^5.3.0",
+    "tailwindcss": "^3.4.17"
+  },
+  "dependencies": {
+    "@fontsource/noto-sans-devanagari": "^5.3.0",
+    "@fontsource/noto-sans-tamil": "^5.3.0"
+  },
+  "private": true
+}
