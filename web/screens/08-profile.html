@@ -1,0 +1,132 @@
+<!-- Gran Care · Profile (family contacts for alerts) · 390 wide, app-styled -->
+<div class="flex flex-col items-start pb-[128px] pt-[64px] relative w-[390px] min-h-[844px] bg-[#f7f9ff]" id="pf-root">
+  <div class="flex flex-col gap-[20px] items-start px-[16px] pt-[16px] relative shrink-0 w-full">
+
+    <div class="bg-white drop-shadow-[0px_1px_1px_rgba(0,0,0,0.05)] flex flex-col gap-[16px] items-start p-[20px] relative rounded-[16px] shrink-0 w-full">
+      <T lh="28px" class="fi font-semibold text-[#181c21] text-[20px] whitespace-nowrap">Patient</T>
+      <div class="flex flex-col gap-[4px] items-start relative shrink-0 w-full">
+          <label for="pf-name"><T lh="20px" class="fi font-semibold text-[#181c21] text-[16px] tracking-[0.16px] whitespace-nowrap">Patient Name</T></label>
+          <div class="bg-[#f0f4fa] flex h-[56px] items-center px-[16px] relative rounded-[12px] shrink-0 w-full"><input id="pf-name" type="text" autocomplete="name" placeholder="e.g. Lakshmi Raman" class="fi font-normal text-[18px] leading-[normal] w-full min-w-0 p-0 m-0 border-0 bg-transparent outline-none text-[#181c21] placeholder:text-[#707881]"></div>
+        </div>
+      <div class="flex flex-col gap-[4px] items-start relative shrink-0 w-full">
+          <label for="pf-phone"><T lh="20px" class="fi font-semibold text-[#181c21] text-[16px] tracking-[0.16px] whitespace-nowrap">Patient Phone</T></label>
+          <div class="bg-[#f0f4fa] flex h-[56px] items-center px-[16px] relative rounded-[12px] shrink-0 w-full"><input id="pf-phone" type="tel" autocomplete="tel" placeholder="e.g. +91 98765 43210" class="fi font-normal text-[18px] leading-[normal] w-full min-w-0 p-0 m-0 border-0 bg-transparent outline-none text-[#181c21] placeholder:text-[#707881]"></div>
+        </div>
+    </div>
+
+    <div class="bg-white drop-shadow-[0px_1px_1px_rgba(0,0,0,0.05)] flex flex-col gap-[16px] items-start p-[20px] relative rounded-[16px] shrink-0 w-full">
+      <div class="flex flex-col gap-[4px] items-start w-full">
+        <T lh="28px" class="fi font-semibold text-[#181c21] text-[20px] whitespace-nowrap">Son / Daughter</T>
+        <T lh="20px" class="fi font-normal text-[#3f4850] text-[14px] w-full">Alerted first when a dose is not taken.</T>
+      </div>
+      <div class="flex flex-col gap-[12px] items-start w-full" id="pf-children"></div>
+      <button type="button" id="pf-add-child" class="bg-[#e5e8ef] flex h-[48px] items-center justify-center px-[16px] relative rounded-[12px] shrink-0 w-full">
+        <T lh="20px" class="fi font-semibold text-[#006191] text-[16px] whitespace-nowrap">+ Add Son / Daughter</T>
+      </button>
+    </div>
+
+    <div class="bg-white drop-shadow-[0px_1px_1px_rgba(0,0,0,0.05)] flex flex-col gap-[16px] items-start p-[20px] relative rounded-[16px] shrink-0 w-full">
+      <div class="flex flex-col gap-[4px] items-start w-full">
+        <T lh="28px" class="fi font-semibold text-[#181c21] text-[20px] whitespace-nowrap">Local Guardian</T>
+        <T lh="20px" class="fi font-normal text-[#3f4850] text-[14px] w-full">A neighbour or relative nearby, alerted in an emergency.</T>
+      </div>
+      <div class="flex flex-col gap-[4px] items-start relative shrink-0 w-full">
+          <label for="pf-g-name"><T lh="20px" class="fi font-semibold text-[#181c21] text-[16px] tracking-[0.16px] whitespace-nowrap">Guardian Name</T></label>
+          <div class="bg-[#f0f4fa] flex h-[56px] items-center px-[16px] relative rounded-[12px] shrink-0 w-full"><input id="pf-g-name" type="text" autocomplete="off" placeholder="e.g. Ravi (neighbour)" class="fi font-normal text-[18px] leading-[normal] w-full min-w-0 p-0 m-0 border-0 bg-transparent outline-none text-[#181c21] placeholder:text-[#707881]"></div>
+        </div>
+      <div class="flex flex-col gap-[4px] items-start relative shrink-0 w-full">
+          <label for="pf-g-phone"><T lh="20px" class="fi font-semibold text-[#181c21] text-[16px] tracking-[0.16px] whitespace-nowrap">Guardian Phone</T></label>
+          <div class="bg-[#f0f4fa] flex h-[56px] items-center px-[16px] relative rounded-[12px] shrink-0 w-full"><input id="pf-g-phone" type="tel" autocomplete="off" placeholder="e.g. +91 91234 56789" class="fi font-normal text-[18px] leading-[normal] w-full min-w-0 p-0 m-0 border-0 bg-transparent outline-none text-[#181c21] placeholder:text-[#707881]"></div>
+        </div>
+    </div>
+
+    <div class="bg-white drop-shadow-[0px_1px_1px_rgba(0,0,0,0.05)] flex flex-col gap-[16px] items-start p-[20px] relative rounded-[16px] shrink-0 w-full">
+      <T lh="28px" class="fi font-semibold text-[#181c21] text-[20px] whitespace-nowrap">Missed Dose Alerts</T>
+      <div class="bg-[#f0f4fa] flex flex-col gap-[8px] items-start p-[16px] rounded-[12px] w-full" id="pf-rules">
+        <T lh="20px" class="fi font-normal text-[#181c21] text-[14px] w-full">1. Snooze up to 2 times, 10 minutes each.</T>
+        <T lh="20px" class="fi font-normal text-[#181c21] text-[14px] w-full">2. On the 3rd alarm, your son / daughter gets an alert message.</T>
+        <T lh="20px" class="fi font-normal text-[#181c21] text-[14px] w-full">3. No YES or LATER reply in 20 minutes: emergency. They get an alert call and the guardian is messaged.</T>
+        <T lh="20px" class="fi font-normal text-[#181c21] text-[14px] w-full">4. Still no reply in 10 minutes: alert call to the guardian and messages to everyone.</T>
+      </div>
+      <label class="flex gap-[12px] items-center justify-between w-full cursor-pointer" for="pf-auto">
+        <div class="flex flex-col items-start min-w-0">
+          <T lh="20px" class="fi font-semibold text-[#181c21] text-[16px] tracking-[0.16px] whitespace-nowrap">Automatic calls &amp; messages</T>
+          <T lh="18px" class="fi font-normal text-[#3f4850] text-[12px] w-full" id="pf-perm">Needs SMS and phone permission on this phone.</T>
+        </div>
+        <input type="checkbox" id="pf-auto" class="size-[28px] shrink-0 accent-[#006191]" checked>
+      </label>
+      <button type="button" id="pf-test" class="bg-[#e5e8ef] flex h-[48px] items-center justify-center px-[16px] relative rounded-[12px] shrink-0 w-full">
+        <T lh="20px" class="fi font-semibold text-[#006191] text-[16px] whitespace-nowrap">Send Test Alert</T>
+      </button>
+    </div>
+
+    <div class="bg-white drop-shadow-[0px_1px_1px_rgba(0,0,0,0.05)] flex flex-col gap-[16px] items-start p-[20px] relative rounded-[16px] shrink-0 w-full" id="pf-scan-card">
+      <div class="flex flex-col gap-[4px] items-start w-full">
+        <T lh="28px" class="fi font-semibold text-[#181c21] text-[20px] whitespace-nowrap">Prescription Scanning</T>
+        <T lh="20px" class="fi font-normal text-[#3f4850] text-[14px] w-full">Optional. Paste an Anthropic API key to read prescription photos. It stays on this phone.</T>
+      </div>
+      <div class="flex flex-col gap-[4px] items-start relative shrink-0 w-full">
+          <label for="pf-key"><T lh="20px" class="fi font-semibold text-[#181c21] text-[16px] tracking-[0.16px] whitespace-nowrap">API Key</T></label>
+          <div class="bg-[#f0f4fa] flex h-[56px] items-center px-[16px] relative rounded-[12px] shrink-0 w-full"><input id="pf-key" type="password" autocomplete="off" placeholder="sk-ant-..." class="fi font-normal text-[18px] leading-[normal] w-full min-w-0 p-0 m-0 border-0 bg-transparent outline-none text-[#181c21] placeholder:text-[#707881]"></div>
+        </div>
+    </div>
+
+    <button type="button" id="pf-save" class="bg-[#006191] drop-shadow-[0px_2px_3px_rgba(0,97,145,0.25)] flex h-[64px] items-center justify-center px-[24px] relative rounded-[16px] shrink-0 w-full">
+      <T lh="24px" class="fi font-bold text-[18px] text-white whitespace-nowrap" id="pf-save-label">Save Profile</T>
+    </button>
+  </div>
+
+  <div class="absolute backdrop-blur-[12px] bg-[rgba(247,249,255,0.9)] border-[rgba(223,227,233,0.4)] border-b border-solid flex flex-col items-start left-0 right-0 shadow-[0px_1px_8px_0px_rgba(0,0,0,0.06)] top-0">
+    <div class="h-[64px] relative shrink-0 w-full">
+      <div class="flex items-center justify-between px-[16px] relative size-full">
+        <div class="flex gap-[8px] items-center relative shrink-0">
+          <div class="max-w-[177.59px] relative rounded-[9999px] shadow-[0px_0px_0px_2px_rgba(16,185,129,0.2),0px_1px_2px_0px_rgba(0,0,0,0.05)] shrink-0 size-[40px]">
+            <div class="absolute inset-0 overflow-hidden pointer-events-none rounded-[9999px]"><img alt="CarePulse logo" class="absolute left-0 max-w-none size-full top-0" src="{{LOGO}}"></div>
+          </div>
+          <div class="flex flex-col items-start overflow-clip relative shrink-0">
+            <T lh="16px" class="fi font-semibold text-[#006191] text-[12px] tracking-[0.6px] uppercase whitespace-nowrap">GRAN CARE</T>
+            <T lh="28px" class="fi font-semibold text-[#181c21] text-[20px] whitespace-nowrap">Profile</T>
+          </div>
+        </div>
+        <div class="flex gap-[4px] items-center relative shrink-0">
+          <button type="button" aria-label="Emergency SOS Assistance" data-sos class="bg-[#ba1a1a] drop-shadow-[0px_2px_3px_rgba(186,26,26,0.25)] flex h-[44px] items-center justify-center px-[8px] relative rounded-[9999px] shrink-0">
+            <div class="h-[15px] relative shrink-0 w-[14.417px]">{{2:1421|14.4167|15}}</div>
+          </button>
+          <button type="button" aria-label="Toggle High Contrast Large Text" data-textsize class="flex items-center justify-center relative rounded-[9999px] shrink-0 size-[44px]">
+            <div class="h-[14.667px] relative shrink-0 w-[18.333px]">{{2:1424|18.3333|14.6667}}</div>
+          </button>
+          <div role="button" tabindex="0" aria-label="Switch role" data-go="role-selection" class="bg-[#006191] flex items-center justify-center relative rounded-[9999px] shrink-0 size-[32px] cursor-pointer">
+            <div class="relative shrink-0 size-[12px]">{{2:1427|12|12}}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- bottom nav -->
+  <nav class="absolute backdrop-blur-[12px] bg-[rgba(247,249,255,0.85)] bottom-0 flex flex-col items-start left-0 right-0 shadow-[0px_-2px_12px_0px_rgba(0,0,0,0.04)]">
+    <div class="flex h-[80px] items-center justify-around px-[4px] relative shrink-0 w-full">
+      <a href="#patient-dashboard" data-go="patient-dashboard" class="flex flex-col items-center justify-center relative rounded-[12px] shrink-0 size-[56px]">
+        <div class="h-[18px] relative shrink-0 w-[16px]">{{2:1432|16|18}}</div>
+        <div class="flex flex-col items-start pt-[2px] relative shrink-0"><T lh="13.75px" class="fi font-normal text-[#3f4850] text-[11px] whitespace-nowrap">Home</T></div>
+      </a>
+      <a href="#patient-dashboard" data-go="patient-dashboard" data-meds class="flex flex-col items-center justify-center relative rounded-[12px] shrink-0 size-[56px]">
+        <div class="relative shrink-0 size-[18px]">{{2:1437|18|18}}</div>
+        <div class="flex flex-col items-start pt-[2px] relative shrink-0"><T lh="13.75px" class="fi font-normal text-[#3f4850] text-[11px] whitespace-nowrap">Meds</T></div>
+      </a>
+      <a href="#prescription-ocr" data-go="prescription-ocr" class="flex flex-col items-center justify-center relative rounded-[12px] shrink-0 size-[56px]">
+        <div class="h-[20px] relative shrink-0 w-[18px]">{{2:1442|18|20}}</div>
+        <div class="flex flex-col items-start pt-[2px] relative shrink-0"><T lh="13.75px" class="fi font-normal text-[#3f4850] text-[11px] whitespace-nowrap">Rx</T></div>
+      </a>
+      <a href="#medication-reminder" data-go="medication-reminder" class="flex flex-col items-center justify-center relative rounded-[12px] shrink-0 size-[56px]">
+        <div class="h-[20.05px] relative shrink-0 w-[20px]">{{2:1447|20|20.05}}</div>
+        <div class="flex flex-col items-start pt-[2px] relative shrink-0"><T lh="13.75px" class="fi font-normal text-[#3f4850] text-[11px] whitespace-nowrap">Alarms</T></div>
+      </a>
+      <a href="#profile" data-go="profile" class="flex flex-col items-center justify-center relative rounded-[12px] shrink-0 size-[56px]" aria-current="page">
+        <div class="relative shrink-0 size-[20px]">{{2:1452|20|20}}</div>
+        <div class="flex flex-col items-start pt-[2px] relative shrink-0"><T lh="13.75px" class="fi font-bold text-[#006191] text-[11px] whitespace-nowrap">Profile</T></div>
+      </a>
+    </div>
+  </nav>
+</div>
