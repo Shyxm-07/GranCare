@@ -89,6 +89,10 @@
               <div class="flex flex-col items-start pt-[2px] relative shrink-0 w-full">
                 <T lh="20px" class="fi font-normal text-[#3f4850] text-[14px] w-full" id="ct-alert-text">No active missed doses or urgent<br>escalations. All scheduled protocols<br>are currently nominal.</T>
               </div>
+              <div id="ct-ack" class="flex gap-[8px] items-center pt-[10px] w-full" style="display:none">
+                <button type="button" id="ct-ack-yes" class="bg-[#006191] flex h-[40px] items-center justify-center px-[14px] rounded-[9999px] shrink-0"><T lh="20px" class="fi font-semibold text-white text-[14px] whitespace-nowrap">Yes, I'm on it</T></button>
+                <button type="button" id="ct-ack-later" class="bg-[#e5e8ef] flex h-[40px] items-center justify-center px-[14px] rounded-[9999px] shrink-0"><T lh="20px" class="fi font-semibold text-[#006191] text-[14px] whitespace-nowrap">Later</T></button>
+              </div>
             </div>
           </div>
         </div>
@@ -290,7 +294,7 @@
         <div class="h-[20.05px] relative shrink-0 w-[20px]">{{2:1730|20|20.05}}</div>
         <div class="flex flex-col items-start pt-[2px] relative shrink-0"><T lh="13.75px" class="fi font-normal text-[#3f4850] text-[11px] whitespace-nowrap">Alarms</T></div>
       </a>
-      <a href="#role-selection" data-go="role-selection" class="flex flex-col items-center justify-center relative rounded-[12px] shrink-0 size-[56px]">
+      <a href="#profile" data-go="profile" class="flex flex-col items-center justify-center relative rounded-[12px] shrink-0 size-[56px]">
         <div class="relative shrink-0 size-[20px]">{{2:1735|20|20}}</div>
         <div class="flex flex-col items-start pt-[2px] relative shrink-0"><T lh="13.75px" class="fi font-normal text-[#3f4850] text-[11px] whitespace-nowrap">Profile</T></div>
       </a>

@@ -163,6 +163,7 @@
     clearTimeout(toast.t); toast.t = setTimeout(function () { toastEl.hidden = true; }, 3200);
   }
   function speak(text) {
+    if (window.__gcSpeak) { window.__gcSpeak(text, S.settings.language || 'en-US'); return; }
     try { if (!('speechSynthesis' in window)) return; window.speechSynthesis.cancel(); var u = new SpeechSynthesisUtterance(text); u.rate = 0.92; u.lang = S.settings.language || 'en-US'; window.speechSynthesis.speak(u); } catch (e) {}
   }
   function go(slug) { if (window.__showScreen) window.__showScreen(slug); }
@@ -185,7 +186,7 @@
         else if (snz && new Date(snz.until).getTime() > now) status = 'snoozed';
         else if (now > t + MISSED_AFTER_MIN * 60000) status = 'missed';
         else if (now >= t - DUE_BEFORE_MIN * 60000) status = 'due';
-        out.push({ med: m, slot: sl, time: t, status: status, takenAt: taken && taken.at, snoozes: evs.filter(function (e) { return e.type === 'snoozed'; }).length });
+        out.push({ med: m, slot: sl, day: day, time: t, status: status, takenAt: taken && taken.at, lastSnoozeUntil: snz && snz.until, snoozes: evs.filter(function (e) { return e.type === 'snoozed'; }).length });
       });
     });
     return out.sort(function (a, b) { return a.time - b.time; });
@@ -223,14 +224,23 @@
   function takeDose(d) {
     if (!d) { toast('No medication is due right now.', 'warn'); return; }
     if (d.status === 'taken') { toast(tr('{name} is already recorded for this slot.', { name: d.med.name }), 'warn'); return; }
+    if (window.__gcNative) window.__gcNative.markTaken(d);
     logEvent({ type: 'taken', medId: d.med.id, medName: d.med.name, dosage: d.med.dosage || '', slot: d.slot.key }).then(function () { toast(tr('{name} recorded as taken.', { name: d.med.name })); go('smartwatch-dose-alert'); }).catch(function () {});
   }
   function snoozeDose(d, mins) {
     if (!d) { toast('No medication is scheduled yet.', 'warn'); return; }
+    var esc = window.__gcEsc, max = esc ? esc.RULES.maxSnoozes : 2;
+    mins = esc ? esc.RULES.snoozeMinutes : 10;
+    if (d.snoozes >= max) {
+      toast('Snooze limit reached. Your son / daughter is being alerted.', 'warn');
+      if (esc) esc.snoozeLimitReached(d);
+      if (window.__gcNative) window.__gcNative.snooze(d);
+      return;
+    }
+    if (window.__gcNative) window.__gcNative.snooze(d);
     var until = new Date(Date.now() + mins * 60000).toISOString();
     logEvent({ type: 'snoozed', medId: d.med.id, medName: d.med.name, slot: d.slot.key, minutes: mins, until: until }).then(function () {
       toast(tr('Reminder snoozed until {t}.', { t: fmtTime(new Date(until)) }));
-      if (d.snoozes + 1 >= 2) logEvent({ type: 'help', reason: 'repeat_snooze', medName: d.med.name }).catch(function () {});
       go('patient-dashboard');
     }).catch(function () {});
   }
@@ -342,6 +352,12 @@
     } else { setT('ct-alert-title', orig('ct-alert-title')); setT('ct-alert-text', orig('ct-alert-text')); }
     renderFeed(evToday);
     if (window.__gcWatch) window.__gcWatch.onRender(list);
+    if (window.__gcEsc) window.__gcEsc.onRender(list);
+    if (window.__gcProfile) window.__gcProfile.render();
+    if (window.__gcNative) window.__gcNative.onRender(list);
+    var limit = cur && cur.snoozes >= 2 && cur.status !== 'taken';
+    setT('mr-snooze-label', limit ? 'SNOOZE LIMIT REACHED' : 'LATER (SNOOZE 10M)');
+    setT('mr-snooze-sub', limit ? 'Your family has been alerted' : 'Postpones alert by 10 mins (up to 2 times), then alerts your family');
     autofit();
   }
 
@@ -456,7 +472,7 @@
         case 'pd-contact': sos('help'); break;
         case 'pd-audio': saveSettings({ audioGuidance: S.settings.audioGuidance === false }); break;
         case 'mr-taken': case 'sa-taken': takeDose(cur); break;
-        case 'mr-snooze': snoozeDose(cur, 15); break;
+        case 'mr-snooze': snoozeDose(cur, 10); break;
         case 'sa-later': snoozeDose(cur, 10); break;
         case 'sa-speak': speak(($('#sa-quote') || {}).textContent.replace(/[\u201c\u201d\u00ab\u00bb]/g, '').trim()); break;
         case 'ct-voice': sendVoice(cur, t); break;
@@ -532,12 +548,15 @@
   function subEvents() {
     if (S.evUnsub) { try { S.evUnsub(); } catch (e) {} }
     S.evDay = today(); S.events = [];
+    if (window.__gcEsc) window.__gcEsc.subscribe(S.db, S.evDay);
     S.evUnsub = S.db.collection('events').where('day', '==', S.evDay).onSnapshot(function (q) { S.events = q.docs.map(function (d) { return Object.assign({}, d.data(), { id: d.id }); }); render(); }, function () { toast('Live updates paused. Reload the page to reconnect.', 'warn'); });
   }
   // ---------- boot ----------
   function boot() {
     markStatic();
     if (window.__gcWatch) window.__gcWatch.init();
+    if (window.__gcEsc) window.__gcEsc.init();
+    if (window.__gcProfile) window.__gcProfile.init();
     ['pd-name', 'pd-next-title', 'pd-next-sub', 'pd-take-sub', 'mr-name', 'mr-dose', 'mr-time', 'mr-instr', 'sa-name', 'sa-dose', 'sa-when', 'sa-quote', 'da-title', 'da-sub', 'ct-patient', 'ct-adh', 'ct-adh-sub', 'ct-taken', 'ct-alert-title', 'ct-alert-text', 'ct-feed-title', 'ct-feed-text', 'ocr-status', 'ocr-title', 'ocr-desc', 'ocr-notice'].forEach(orig);
     bind();
     setInterval(render, 30000);
@@ -565,6 +584,6 @@
     render();
   }
   window.__granCareRender = function () { render(); };
-  window.__gc = { S: S, tr: tr, setT: setT, toast: toast, speak: speak, ago: ago, render: function () { render(); }, doseInstances: doseInstances, logEvent: logEvent };
+  window.__gc = { S: S, tr: tr, setT: setT, toast: toast, speak: speak, ago: ago, render: function () { render(); }, doseInstances: doseInstances, logEvent: logEvent, go: go, today: today, SLOT: SLOT, SLOTS: SLOTS, fmtTime: fmtTime };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot); else boot();
 })();
