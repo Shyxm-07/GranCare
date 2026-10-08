@@ -1,0 +1,9 @@
+{
+  "appId": "com.grancare.app",
+  "appName": "Gran Care",
+  "webDir": "web/dist-app",
+  "android": {
+    "allowMixedContent": false,
+    "backgroundColor": "#f7f9ff"
+  }
+}

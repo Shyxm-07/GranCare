@@ -1,0 +1,22 @@
+{
+  "name": "gran-care",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Gran Care: medication reminders for elderly patients, with family alerts, an Android app and a Wear OS watch app",
+  "scripts": {
+    "web:install": "npm --prefix web install",
+    "build:web": "npm --prefix web run build",
+    "build:app": "npm --prefix web run build:app",
+    "sync": "npm run build:app && npx cap sync android",
+    "apk": "npm run sync && cd android && ./gradlew assembleDebug"
+  },
+  "dependencies": {
+    "@capacitor-community/text-to-speech": "^8.0.2",
+    "@capacitor/android": "^8.5.3",
+    "@capacitor/app": "^8.1.2",
+    "@capacitor/core": "^8.5.3"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^8.5.3"
+  }
+}
