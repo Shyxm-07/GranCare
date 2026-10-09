@@ -48,6 +48,32 @@ go out from the patient's phone and SIM, so normal carrier SMS charges apply.
 | Phone | place the emergency alert call |
 | Camera | photograph a prescription (optional) |
 
+## Accounts (log in / sign up)
+
+When `web/firebase-config.js` holds a Firebase web config, the app starts on **Log In**:
+
+* **Create Account → I am the patient** creates the family and shows a **6-letter invite code**
+  in *Profile*.
+* Sons, daughters and the local guardian choose their role and enter that code. They are added
+  to the patient's alert contacts automatically and land on the caretaker dashboard.
+* Everyone in the family sees the same medicines, doses and alerts live. Only the
+  patient's phone rings, and a son's *"Yes, I'm on it"* on his own phone stops the escalation on
+  the patient's phone.
+* *Forgot password?* sends a reset email; *Profile → Log Out* signs out.
+
+### Firebase setup (one time)
+
+1. Create a project at <https://console.firebase.google.com>.
+2. **Authentication → Sign-in method → Email/Password → Enable.**
+3. **Firestore Database → Create database** (production mode).
+4. **Firestore Database → Rules**: replace everything with the contents of
+   [`firestore.rules`](firestore.rules) and click **Publish**. Without this every request is
+   refused.
+5. **Project settings → Your apps → Web app**: copy the `firebaseConfig` values into
+   [`web/firebase-config.js`](web/firebase-config.js) and push. The next build includes accounts.
+
+With an empty config the app works without accounts and keeps data on the phone.
+
 ## Using the app
 
 1. **Profile** (bottom bar): enter the patient's name, at least one son / daughter, and the local
@@ -75,8 +101,13 @@ cd android && ./gradlew assembleDebug
 Watch app: `cd wear-os && ./gradlew assembleDebug` (see `wear-os/README.md` for the
 Google Calendar sign-in setup). Web version: `npm run build:web` → `web/dist/index.html`.
 
-Tests: `python3 web/tests/app_flow.py` (Playwright) checks saving, restart persistence, the
-profile, the snooze limit and all three escalation levels.
+Tests (also run on every push):
+
+* `GC_FIREBASE_DISABLE=1 npm run build:app && python3 web/tests/app_flow.py`: saving, restart
+  persistence, profile, snooze limit and all three escalation levels.
+* `GC_FIREBASE_EMULATOR=1 npm run build:app && npx firebase-tools emulators:exec --only auth,firestore "python3 web/tests/auth_flow.py"`:
+  log in, sign up, wrong password / code, invite code, log out and back in, the son's dashboard,
+  contacts linking, and the security rules (a stranger cannot read or join a family).
 
 ## How it fits together
 
@@ -86,6 +117,7 @@ web/screens/*.html ──build.js──▶ web/dist-app/index.html ──cap syn
         escalation.js   snooze limit + 3-level escalation (web version runs the timers itself)
         profile.js      Profile screen
         standalone.js   on-phone data store (same API as the claude.ai runtime) + prescription reading
+        cloud.js        Firebase accounts: log in, sign up, invite codes, family-scoped Firestore data
         native.js       bridge to the Android plugin below
 android/app/src/main/java/com/grancare/app/
         EscalationEngine.java   alarms, snoozes, escalation, SMS, calls, notifications
