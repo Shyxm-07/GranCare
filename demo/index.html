@@ -153,15 +153,41 @@ select { font: inherit; font-weight: 600; font-size: 14px; padding: 8px 10px; bo
 .events li > span { min-width: 0; }
 .foot { font-size: 12.5px; color: var(--muted); }
 
+
+/* family lock screen with unread notifications */
+.flock { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 22px 12px 16px; background: linear-gradient(180deg, #1f2a37 0%, #2d3b4c 100%); color: #ffffff; }
+.flock .big { font: 800 48px/1 var(--display); font-variant-numeric: tabular-nums; letter-spacing: -0.03em; }
+.flock .busy { font-size: 12px; color: #c9d4e0; margin-bottom: 8px; text-align: center; }
+.noti { width: 100%; text-align: left; background: rgba(255, 255, 255, .94); color: #172230; border: 0; border-radius: 16px; padding: 10px 12px; display: flex; flex-direction: column; gap: 2px; box-shadow: 0 6px 16px rgba(0, 0, 0, .25); }
+.noti .nh { display: flex; justify-content: space-between; font: 700 11px var(--body); color: #43617c; letter-spacing: .04em; }
+.noti .nt { font-size: 12.5px; line-height: 1.35; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.noti.emer { background: #fde8e6; } .noti.emer .nh { color: #b42318; }
+.noti .tap { font: 700 11px var(--body); color: #006191; margin-top: 2px; }
+.badge { background: #ba1a1a; color: #ffffff; border-radius: 999px; font: 700 11px var(--body); padding: 1px 7px; }
+.seen { align-self: flex-end; font: 600 10.5px var(--body); color: #0a7f5a; margin-top: -4px; }
+.unseen { align-self: flex-start; font: 600 10.5px var(--body); color: #8a97a5; margin-top: -4px; }
+.backbar { display: flex; justify-content: center; padding: 10px; background: #ffffff; border-top: 1px solid #dfe6ee; }
+.backbar button { border: 0; background: #e5e8ef; color: #006191; border-radius: 999px; padding: 8px 16px; font: 700 13px var(--display); }
+/* clinic desk */
+.clinic { width: 270px; max-width: 100%; background: var(--surface); border: 1px solid var(--line); border-radius: 18px; padding: 12px 14px; display: flex; flex-direction: column; gap: 8px; }
+.clinic .ch { display: flex; align-items: center; gap: 10px; }
+.clinic .cic { width: 34px; height: 34px; border-radius: 10px; background: #ba1a1a; color: #ffffff; display: grid; place-items: center; font: 800 18px var(--display); flex: none; }
+.clinic b { font: 700 14px var(--display); display: block; }
+.clinic span { font-size: 12px; color: var(--muted); }
+.clinic .cm { font-size: 12.5px; background: var(--chip); border-radius: 12px; padding: 8px 10px; color: var(--ink); }
+.clinic .cm.emer { background: #fde8e6; color: #5c1610; }
+.clinic .ce { font-size: 12.5px; color: var(--muted); }
+.clinic.ring { animation: buzz .14s linear infinite; }
+
 @media (prefers-reduced-motion: reduce) {
-  .phone.buzz, .watch.buzz, .bell, .bell svg, .call .cav, .ptoast { animation: none !important; }
+  .phone.buzz, .watch.buzz, .clinic.ring, .bell, .bell svg, .call .cav, .ptoast { animation: none !important; }
 }
 </style>
 
 <div class="wrap">
   <header>
     <h1>Gran Care missed-dose alerts</h1>
-    <p class="lede">A live simulation of the patient's alarm and the family alerts. The clock runs fast so the whole sequence plays in about a minute. Tap the buttons on any phone, or pick a scenario and watch it play out.</p>
+    <p class="lede">A live simulation of the patient's alarm and the family alerts. The clock runs fast so the whole sequence plays in about a minute. Tap the buttons on any phone, or pick a scenario and watch it play out. The son lives far away: if he leaves the alert unread for 20 minutes, it becomes a medical emergency for the people nearby.</p>
   </header>
 
   <section class="bar" aria-label="Demo controls">
@@ -175,8 +201,8 @@ select { font: inherit; font-weight: 600; font-size: 14px; padding: 8px 10px; bo
       <div class="row" role="group" aria-label="Scenario">
         <button class="btn" data-scn="manual" aria-pressed="true">You control it</button>
         <button class="btn" data-scn="takes" aria-pressed="false">Patient takes it</button>
-        <button class="btn" data-scn="sonyes" aria-pressed="false">Son replies YES</button>
-        <button class="btn" data-scn="nobody" aria-pressed="false">Nobody responds</button>
+        <button class="btn" data-scn="seen" aria-pressed="false">Son sees the alert</button>
+        <button class="btn" data-scn="busy" aria-pressed="false">Son is busy (emergency)</button>
       </div>
     </div>
     <div class="grp">
@@ -209,11 +235,12 @@ select { font: inherit; font-weight: 600; font-size: 14px; padding: 8px 10px; bo
       </div>
       <div class="device">
         <div class="phone" id="ph-son"><div class="screen"><div class="notch"></div><div class="status"><span data-time></span><span>Shyam</span></div><div class="body" style="flex:1;display:flex;flex-direction:column;min-height:0" id="son"></div></div></div>
-        <div class="who"><b>Shyam</b><span>Son · alerted first · +91 98765 43210</span></div>
+        <div class="who"><b>Shyam</b><span>Son · lives in Bengaluru, 350 km away · +91 98765 43210</span></div>
       </div>
       <div class="device">
         <div class="phone" id="ph-grd"><div class="screen"><div class="notch"></div><div class="status"><span data-time></span><span>Ravi</span></div><div class="body" style="flex:1;display:flex;flex-direction:column;min-height:0" id="grd"></div></div></div>
         <div class="who"><b>Ravi</b><span>Neighbour · local guardian · +91 91234 56789</span></div>
+        <div class="clinic" id="clinic"></div>
       </div>
     </section>
 
@@ -221,13 +248,13 @@ select { font: inherit; font-weight: 600; font-size: 14px; padding: 8px 10px; bo
       <h2>What happens</h2>
       <ol class="rules">
         <li>8:00 alarm rings. LATER snoozes 10 min, at most twice.</li>
-        <li>3rd alarm (8:20): Shyam gets a text.</li>
-        <li>No YES / LATER in 20 min (8:40): emergency call to Shyam, text to Ravi.</li>
-        <li>Still nothing in 10 min (8:50): call to Ravi, texts to everyone.</li>
+        <li>3rd alarm (8:20): Shyam (son, lives far away) gets an alert.</li>
+        <li>If Shyam opens it, he has seen it and takes over. Nothing else is sent.</li>
+        <li>Unread for 20 min (8:40): medical emergency. Ravi (neighbour) is called and messaged, and CarePlus Clinic nearby is notified.</li>
       </ol>
       <h2>Timeline</h2>
       <ol class="events" id="events" aria-live="polite"></ol>
-      <p class="foot">Simulation only: no real messages or calls are sent. In the Android app the same steps run on the patient's phone, using its SIM, even when the app is closed.</p>
+      <p class="foot">Simulation only: no real messages or calls are sent. "Seen" means Shyam opened the alert. Plain SMS cannot report that, so the real app detects it when he opens the alert in Gran Care on his phone.</p>
     </aside>
   </div>
 </div>
@@ -237,19 +264,22 @@ select { font: inherit; font-weight: 600; font-size: 14px; padding: 8px 10px; bo
   'use strict';
   var MIN = 60000, SEC = 1000;
   var DOSE = { name: 'Metformin', dose: '500 mg', slot: 'Morning dose', ins: 'Take after breakfast with a glass of water.' };
-  var PATIENT = 'Lakshmi', SON = 'Shyam', GRD = 'Ravi';
+  var PATIENT = 'Lakshmi', SON = 'Shyam', GRD = 'Ravi', CLINIC = 'CarePlus Clinic, Anna Nagar';
+  var ADDRESS = '12 Lake View Road, Anna Nagar, Chennai';
   var BASE = new Date(); BASE.setHours(0, 0, 0, 0);
   var T0 = BASE.getTime() + 7 * 3600 * SEC + 59 * MIN + 50 * SEC;   // 7:59:50
   var DOSE_AT = BASE.getTime() + 8 * 3600 * SEC;                      // 8:00
+  var UNSEEN_LIMIT = 20 * MIN;
 
   var S, playing = false, scenario = 'manual', speed = 120, last = 0, sound = true;
+  var med = DOSE.name + ' ' + DOSE.dose;
 
+  function person() { return { msgs: [], open: false, call: null, seenAt: 0 }; }
   function fresh() {
     return {
-      t: T0, rings: 0, snoozes: 0, ringing: false, ringStart: 0, nextRing: DOSE_AT,
+      t: T0, rings: 0, snoozes: 0, ringing: false, ringStart: 0, ringReal: 0, nextRing: DOSE_AT,
       taken: false, takenAt: 0, level: 0, levelAt: 0, resolved: null, alerted: [],
-      son: { msgs: [], call: null }, grd: { msgs: [], call: null }, pToast: null, wNote: null,
-      events: [], script: {}
+      son: person(), grd: person(), clinic: { msgs: [], ringing: false, since: 0 }, pToast: null, events: [], script: {}
     };
   }
 
@@ -262,22 +292,26 @@ select { font: inherit; font-weight: 600; font-size: 14px; padding: 8px 10px; bo
   function hm(t) { var d = new Date(t), h = d.getHours() % 12 || 12, m = d.getMinutes(); return h + ':' + (m < 10 ? '0' : '') + m; }
   function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
   function log(text, kind) { S.events.push({ t: S.t, text: text, kind: kind || '' }); }
-  function sms(to, text, emer) { var p = to === 'son' ? S.son : S.grd; p.msgs.push({ dir: 'in', text: text, t: S.t, emer: !!emer }); if (S.alerted.indexOf(to) < 0) S.alerted.push(to); beep('sms'); }
+  function send(to, text, emer) {
+    var p = S[to]; p.msgs.push({ dir: 'in', text: text, t: S.t, emer: !!emer, seen: p.open });
+    if (S.alerted.indexOf(to) < 0) S.alerted.push(to);
+    beep('sms');
+  }
+  function unread(p) { return p.msgs.filter(function (m) { return m.dir === 'in' && !m.seen; }).length; }
   function toastPatient(title, text) { S.pToast = { title: title, text: text, until: performance.now() + 4500 }; }
-  var med = DOSE.name + ' ' + DOSE.dose;
+  function ordinal(n) { return n === 2 ? '2nd' : n === 3 ? '3rd' : n + 'th'; }
 
-  // ---------- the rules (same as the Android EscalationEngine) ----------
+  // ---------- the rules ----------
   function ring() {
     S.rings++; S.ringing = true; S.ringStart = S.t; S.ringReal = performance.now();
     S.nextRing = S.rings >= 3 ? 0 : S.t + 10 * MIN;      // unanswered alarms re-ring in 10 min
     log(S.rings === 1 ? 'Alarm rings on Lakshmi’s phone and watch.' : 'Alarm rings again (' + ordinal(S.rings) + ' time).', '');
     if (S.rings === 1) speak('It is time to take ' + DOSE.name + ' ' + DOSE.dose + '.');
-    if (S.rings >= 3 && S.level === 0 && !S.resolved) escalate(1);
+    if (S.rings >= 3 && S.level === 0 && !S.taken) alertSon();
   }
-  function ordinal(n) { return n === 2 ? '2nd' : n === 3 ? '3rd' : n + 'th'; }
   function snooze() {
-    if (!S.ringing && !S.nextRing) return;
-    if (S.snoozes >= 2 || S.rings >= 3) { if (S.level === 0) escalate(1); return; }
+    if (!S.ringing) return;
+    if (S.snoozes >= 2 || S.rings >= 3) { if (S.level === 0) alertSon(); return; }
     S.snoozes++; S.ringing = false; S.nextRing = S.t + 10 * MIN;
     log('Lakshmi taps LATER (' + S.snoozes + ' of 2). Next alarm at ' + fmt(S.nextRing) + '.', 'warn');
   }
@@ -285,111 +319,97 @@ select { font: inherit; font-weight: 600; font-size: 14px; padding: 8px 10px; bo
     if (S.taken) return;
     S.taken = true; S.takenAt = S.t; S.ringing = false; S.nextRing = 0;
     log('Lakshmi taps TAKEN. Dose recorded.', 'ok');
-    if (S.level >= 1 && !S.resolved) {
-      S.resolved = 'taken';
-      var t = 'Gran Care update: ' + PATIENT + ' has now taken ' + med + '. Thank you.';
-      S.alerted.forEach(function (who) { sms(who, t); });
+    if (S.level >= 1) {
+      var t = 'Gran Care update: ' + PATIENT + ' has now taken ' + med + ' (' + hm(S.t) + '). No action needed.';
+      S.alerted.forEach(function (w) { if (w !== 'clinic') send(w, t); });
+      if (S.alerted.indexOf('clinic') >= 0) S.clinic.msgs.push({ text: 'Update: ' + PATIENT + ' has taken her medicine. Emergency closed.', t: S.t });
       log('Everyone alerted gets an update: dose taken.', 'ok');
+      S.resolved = S.resolved || 'taken';
     }
-    S.son.call = endCall(S.son.call); S.grd.call = endCall(S.grd.call);
+    S.grd.call = null; S.clinic.ringing = false;
   }
-  function escalate(level) {
-    if (S.level >= level || S.taken || S.resolved) return;
-    S.level = level; S.levelAt = S.t;
-    if (level === 1) {
-      sms('son', 'GRAN CARE ALERT: ' + PATIENT + ' has not taken ' + med + ' (due 8:00 AM). The alarm was snoozed twice. Please check on her. Reply YES if you are on it, or LATER.');
-      toastPatient('Your son has been alerted', 'Shyam got a message about your ' + DOSE.name + '.');
-      log('3rd alarm: text sent to Shyam (son).', 'warn');
-    } else if (level === 2) {
-      sms('son', 'GRAN CARE EMERGENCY: ' + PATIENT + ' still has not taken ' + med + ' and nobody replied for 20 minutes. Please check on her now. Reply YES when you are on it.', true);
-      sms('grd', 'GRAN CARE EMERGENCY: ' + PATIENT + ' still has not taken ' + med + ' and nobody replied for 20 minutes. Please check on her now. Reply YES when you are on it.', true);
-      S.son.call = { state: 'ringing', since: performance.now(), from: PATIENT + '’s phone', level: 2 };
-      toastPatient('Emergency', 'Your family is being called.');
-      log('No reply in 20 min: EMERGENCY. Alert call to Shyam, text to Ravi.', 'bad');
-    } else {
-      var t = 'GRAN CARE URGENT: Nobody has responded for 30 minutes about ' + PATIENT + ' (' + med + ' not taken). Ravi is being called. Reply YES once someone is with her.';
-      sms('son', t, true); sms('grd', t, true);
-      S.grd.call = { state: 'ringing', since: performance.now(), from: PATIENT + '’s phone', level: 3 };
-      toastPatient('Emergency', 'Your local guardian is being called.');
-      log('Still no reply after 10 min: alert call to Ravi (guardian), texts to everyone.', 'bad');
-    }
+  function alertSon() {
+    S.level = 1; S.levelAt = S.t;
+    send('son', 'GRAN CARE ALERT: ' + PATIENT + ' has not taken ' + med + ' (due 8:00 AM). The alarm was snoozed twice. Please call her or check on her. If this message stays unread for 20 minutes, Ravi (neighbour) and CarePlus Clinic will be alerted.');
+    toastPatient('Your son has been alerted', 'Shyam got a message about your ' + DOSE.name + '.');
+    log('3rd alarm: alert sent to Shyam (son). Waiting for him to see it.', 'warn');
   }
-  function reply(who, type) {
-    var p = who === 'son' ? S.son : S.grd, name = who === 'son' ? SON : GRD;
-    if (S.level < 1 || S.resolved || S.taken) return;
-    p.msgs.push({ dir: 'out', text: type === 'yes' ? 'YES' : 'LATER', t: S.t });
-    S.resolved = 'ack';
-    S.son.call = endCall(S.son.call); S.grd.call = endCall(S.grd.call);
-    var other = who === 'son' ? 'grd' : 'son';
-    if (S.alerted.indexOf(other) >= 0) {
-      sms(other, type === 'yes' ? 'Gran Care: ' + name + ' replied YES and is checking on ' + PATIENT + '.'
-                                : 'Gran Care: ' + name + ' replied LATER about ' + PATIENT + '’s ' + DOSE.name + '. The alarm will ring again.');
-    }
-    if (type === 'yes') {
-      toastPatient(name + ' is on the way to help', 'Your family received the alert about ' + DOSE.name + '.');
-      log(name + ' replies YES. Alerts stop; others are told.', 'ok');
-    } else {
-      S.rings = 2; S.nextRing = S.t + 10 * MIN; S.ringing = false;
-      toastPatient(name + ' will check soon', 'Your alarm will ring once more in 10 minutes.');
-      log(name + ' replies LATER. Alerts stop; one more alarm at ' + fmt(S.nextRing) + '.', 'ok');
+  function emergency() {
+    S.level = 2; S.levelAt = S.t;
+    send('son', 'GRAN CARE MEDICAL EMERGENCY: you have not seen the alert for 20 minutes. Ravi (neighbour) and CarePlus Clinic have been alerted to check on ' + PATIENT + '.', true);
+    send('grd', 'GRAN CARE MEDICAL EMERGENCY: ' + PATIENT + ' (' + ADDRESS + ') has not taken ' + med + ' since 8:00 AM and her son Shyam, who lives far away, has not seen the alert. Please go and check on her now.', true);
+    S.grd.call = { state: 'ringing', since: performance.now() };
+    S.clinic.msgs.push({ text: 'MEDICAL EMERGENCY ALERT from Gran Care: ' + PATIENT + ' Raman, 78, at ' + ADDRESS + ', has missed ' + med + ' and has not responded since 8:00 AM. Her son lives far away and has not seen the alert. Neighbour Ravi (+91 91234 56789) is being called. Please be ready to assist.', t: S.t, emer: true });
+    S.clinic.ringing = true; S.clinic.since = performance.now();
+    if (S.alerted.indexOf('clinic') < 0) S.alerted.push('clinic');
+    toastPatient('Medical emergency', 'Ravi and CarePlus Clinic are being alerted.');
+    log('Alert unread for 20 minutes: MEDICAL EMERGENCY. Ravi (neighbour) is called and messaged; CarePlus Clinic is notified.', 'bad');
+  }
+  function open(who) {
+    var p = S[who], name = who === 'son' ? SON : GRD, n = unread(p);
+    p.open = true;
+    p.msgs.forEach(function (m) { if (m.dir === 'in' && !m.seen) { m.seen = true; m.seenAt = S.t; } });
+    if (!n) return;
+    if (!p.seenAt) p.seenAt = S.t;
+    if (who === 'son' && S.level === 1 && !S.resolved && !S.taken) {
+      S.resolved = 'seen';
+      toastPatient('Shyam has seen the alert', 'He will call you or arrange help.');
+      log('Shyam opens the alert (seen at ' + fmt(S.t) + '). No emergency needed.', 'ok');
+    } else if (who === 'grd' && S.level === 2 && S.resolved !== 'guardian') {
+      S.resolved = 'guardian';
+      toastPatient('Ravi is coming to check on you', 'Your neighbour has seen the emergency alert.');
+      log('Ravi sees the emergency alert and is on his way.', 'ok');
+      send('son', 'Gran Care: Ravi (neighbour) has seen the emergency alert and is going to ' + PATIENT + '.');
+      S.clinic.msgs.push({ text: 'Update: neighbour Ravi has seen the alert and is going to the patient.', t: S.t });
+    } else if (who === 'son') {
+      log('Shyam opens his messages.', '');
     }
   }
-  function endCall(c) { return c && c.state !== 'ended' ? null : c; }
-  function answer(who) {
-    var p = who === 'son' ? S.son : S.grd; if (!p.call) return;
-    p.call.state = 'live'; p.call.since = performance.now();
-    log((who === 'son' ? SON : GRD) + ' answers the alert call from ' + PATIENT + '’s phone.', '');
+  function answer() {
+    var c = S.grd.call; if (!c) return;
+    c.state = 'live'; c.since = performance.now();
+    log('Ravi answers the emergency call.', 'ok');
+    open('grd');
   }
-  function decline(who) {
-    var p = who === 'son' ? S.son : S.grd; if (!p.call) return;
-    var was = p.call.state;
-    p.msgs.push({ dir: 'sys', text: (was === 'live' ? 'Call ended' : 'Missed call from ' + PATIENT + '’s phone') + ' · ' + hm(S.t), t: S.t });
-    p.call = null;
+  function decline() {
+    var c = S.grd.call; if (!c) return;
+    S.grd.msgs.push({ dir: 'sys', text: (c.state === 'live' ? 'Call ended' : 'Missed call from ' + PATIENT + '’s phone') + ' · ' + hm(S.t), t: S.t });
+    S.grd.call = null;
   }
 
   // ---------- time ----------
   function due() {
-    // next simulated moment at which something happens (for "Skip to next step")
     var c = [];
     if (!S.taken && !S.ringing && S.nextRing && S.rings < 3) c.push(S.nextRing);
     if (S.ringing) c.push(S.ringStart + 5 * MIN);
-    if (S.level === 1 && !S.resolved && !S.taken) c.push(S.levelAt + 20 * MIN);
-    if (S.level === 2 && !S.resolved && !S.taken) c.push(S.levelAt + 10 * MIN);
+    if (S.level === 1 && !S.resolved && !S.taken) c.push(S.levelAt + UNSEEN_LIMIT);
     c = c.filter(function (x) { return x > S.t; });
     return c.length ? Math.min.apply(null, c) : 0;
   }
   function step(now) {
-    // patient alarm
     if (!S.taken && !S.ringing && S.nextRing && S.rings < 3 && S.t >= S.nextRing) ring();
     if (S.ringing && S.t >= S.ringStart + 5 * MIN) {
       S.ringing = false;
       log('No answer for 5 minutes. The alarm stops' + (S.nextRing ? ' and rings again at ' + fmt(S.nextRing) + '.' : '.'), 'warn');
     }
-    if (!S.taken && !S.resolved) {
-      if (S.level === 1 && S.t >= S.levelAt + 20 * MIN) escalate(2);
-      else if (S.level === 2 && S.t >= S.levelAt + 10 * MIN) escalate(3);
+    if (S.level === 1 && !S.resolved && !S.taken && S.t >= S.levelAt + UNSEEN_LIMIT) emergency();
+    var c = S.grd.call;
+    if (c && c.state === 'ringing' && now - c.since > 30 * SEC) {
+      S.grd.msgs.push({ dir: 'sys', text: 'Missed call from ' + PATIENT + '’s phone · ' + hm(S.t), t: S.t });
+      S.grd.call = null;
     }
-    // calls ring for 30 real seconds, then become missed calls
-    ['son', 'grd'].forEach(function (w) {
-      var p = S[w];
-      if (p.call && p.call.state === 'ringing' && now - p.call.since > 30 * SEC) {
-        p.msgs.push({ dir: 'sys', text: 'Missed call from ' + PATIENT + '’s phone · ' + hm(S.t), t: S.t });
-        p.call = null;
-      }
-    });
+    if (S.clinic.ringing && now - S.clinic.since > 6 * SEC) S.clinic.ringing = false;
     runScript(now);
   }
   function waitingForHuman() {
-    var calling = (S.son.call && S.son.call.state === 'ringing') || (S.grd.call && S.grd.call.state === 'ringing');
+    var calling = S.grd.call && S.grd.call.state === 'ringing';
     if (scenario === 'manual') return S.ringing || calling;
-    // scenarios: let each alarm ring visibly for a few seconds before time speeds up again
-    return S.ringing && performance.now() - S.ringReal < 4500;
+    return (S.ringing && performance.now() - S.ringReal < 4500) || calling;
   }
   function frame(now) {
     if (playing) {
       var dt = Math.min(now - (last || now), 250);
-      var sp = waitingForHuman() ? 1 : speed;   // slow down while someone has to answer
-      S.t += dt * sp;
+      S.t += dt * (waitingForHuman() ? 1 : speed);
       step(now);
     }
     last = now;
@@ -402,23 +422,30 @@ select { font: inherit; font-weight: 600; font-size: 14px; padding: 8px 10px; bo
   function runScript(now) {
     var sc = S.script;
     if (scenario === 'takes') {
-      if (S.ringing && S.rings === 1 && !sc.t1) { sc.t1 = now; }
+      if (S.ringing && S.rings === 1 && !sc.t1) sc.t1 = now;
       if (sc.t1 && !S.taken && now - sc.t1 > 3500) take();
-    } else if (scenario === 'sonyes') {
+    } else if (scenario === 'seen' || scenario === 'busy') {
       if (S.ringing && S.rings < 3 && sc['r' + S.rings] === undefined) sc['r' + S.rings] = now;
       if (S.ringing && S.rings < 3 && now - sc['r' + S.rings] > 2500) snooze();
-      if (S.level === 1 && !sc.y) sc.y = S.t;
-      if (sc.y && !S.resolved && S.t - sc.y > 3 * MIN) reply('son', 'yes');
-    } else if (scenario === 'nobody') {
-      ['son', 'grd'].forEach(function (w) {
-        var c = S[w].call;
-        if (c && c.state === 'ringing' && now - c.since > 3500) { S[w].msgs.push({ dir: 'sys', text: 'Missed call from ' + PATIENT + '’s phone · ' + hm(S.t), t: S.t }); S[w].call = null; }
-      });
+      if (scenario === 'seen') {
+        if (S.level === 1 && !sc.y) sc.y = S.t;
+        if (sc.y && !S.resolved && S.t - sc.y > 6 * MIN) open('son');
+      } else if (S.grd.call && S.grd.call.state === 'ringing' && now - S.grd.call.since > 3500) {
+        answer();
+      }
     }
   }
 
   // ---------- rendering ----------
   var bellSvg = '<svg width="30" height="30" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 3a6 6 0 0 0-6 6v3.6L4.3 15.4a.8.8 0 0 0 .7 1.2h14a.8.8 0 0 0 .7-1.2L18 12.6V9a6 6 0 0 0-6-6Z" fill="#ffffff"/><path d="M9.5 18.5a2.5 2.5 0 0 0 5 0" stroke="#ffffff" stroke-width="1.8" stroke-linecap="round"/></svg>';
+
+  function familyStatus() {
+    if (S.level === 0) return null;
+    if (S.resolved === 'seen') return { k: 'Seen by Shyam', s: 'He saw the alert at ' + fmt(S.son.seenAt) + '.', ok: true };
+    if (S.resolved === 'guardian') return { k: 'Help is coming', s: 'Ravi (neighbour) is on his way. CarePlus Clinic was notified.', ok: true };
+    if (S.level === 2) return { k: 'Medical emergency', s: 'Ravi is being called. CarePlus Clinic was notified.' };
+    return { k: 'Son alerted', s: 'Shyam has not seen the alert yet.' };
+  }
 
   function patientHTML(now) {
     var h = '';
@@ -426,7 +453,7 @@ select { font: inherit; font-weight: 600; font-size: 14px; padding: 8px 10px; bo
       var limit = S.snoozes >= 2 || S.rings >= 3 || S.level > 0;
       h += '<div class="alarm"><div class="t">' + hm(S.t) + '</div><div class="pill">Medication alarm due now</div><div class="bell">' + bellSvg + '</div>';
       h += '<div class="acard"><div class="k">Time to take</div><div class="n">' + esc(med) + '</div><div class="s">' + DOSE.slot + '</div><div class="ins">' + esc(DOSE.ins) + '</div></div>';
-      if (limit) h += '<div class="astat red">Snooze limit reached. Your family has been alerted.</div>';
+      if (limit) h += '<div class="astat red">Snooze limit reached. Your son has been alerted.</div>';
       else if (S.snoozes) h += '<div class="astat">Snoozed ' + S.snoozes + ' of 2 times</div>';
       h += '<div class="spacer"></div><button class="abtn" data-act="take">✓ TAKEN</button>';
       if (!limit) h += '<button class="abtn later" data-act="snooze">LATER (10 MIN)</button>';
@@ -437,8 +464,9 @@ select { font: inherit; font-weight: 600; font-size: 14px; padding: 8px 10px; bo
       if (S.taken) h += '<div class="ncard ok"><div class="k">Dose taken</div><div class="v">' + esc(med) + '</div><div class="s">Recorded at ' + fmt(S.takenAt) + '</div></div>';
       else if (S.nextRing && S.rings > 0) h += '<div class="ncard"><div class="k">Snoozed</div><div class="v">' + esc(med) + '</div><div class="s">Next alarm at ' + fmt(S.nextRing) + '</div></div>';
       else if (S.rings === 0) h += '<div class="ncard"><div class="k">Next dose · 8:00 AM</div><div class="v">' + esc(med) + '</div><div class="s">' + esc(DOSE.ins) + '</div></div>';
-      else h += '<div class="ncard bad"><div class="k">Missed dose</div><div class="v">' + esc(med) + '</div><div class="s">Not taken. Tap to take it now.</div></div>';
-      if (S.level > 0 && !S.taken) h += '<div class="ncard bad"><div class="k">' + (S.resolved === 'ack' ? 'Family responded' : S.level >= 2 ? 'Emergency' : 'Family alerted') + '</div><div class="s">' + (S.resolved === 'ack' ? 'Help is on the way.' : S.level >= 3 ? 'Ravi (guardian) is being called.' : S.level === 2 ? 'Shyam is being called. Ravi was messaged.' : 'Shyam got a message.') + '</div></div>';
+      else h += '<div class="ncard bad"><div class="k">Missed dose</div><div class="v">' + esc(med) + '</div><div class="s">Not taken yet.</div></div>';
+      var f = familyStatus();
+      if (f && !S.taken) h += '<div class="ncard ' + (f.ok ? 'ok' : 'bad') + '"><div class="k">' + f.k + '</div><div class="s">' + f.s + '</div></div>';
       if (!S.taken && S.rings > 0) h += '<div style="width:100%;margin-top:6px"><button class="abtn" data-act="take">✓ I took it</button></div>';
       h += '<div class="spacer"></div><div class="appbadge"><i></i>Gran Care</div></div>';
     }
@@ -447,31 +475,46 @@ select { font: inherit; font-weight: 600; font-size: 14px; padding: 8px 10px; bo
   }
 
   function famHTML(who) {
-    var p = S[who], name = who === 'son' ? SON : GRD;
-    var h = '<div class="msgs"><div class="mhead"><div class="av">GC</div><div><b>Gran Care</b><span>from Lakshmi’s phone · +91 90000 11111</span></div></div><div class="thread" data-thread="' + who + '">';
-    if (!p.msgs.length) h += '<div class="empty">No alerts. If ' + PATIENT + ' misses a dose, the message arrives here.</div>';
-    p.msgs.forEach(function (m) {
-      if (m.dir === 'sys') h += '<div class="bub sys">' + esc(m.text) + '</div>';
-      else h += '<div class="bub ' + m.dir + (m.emer ? ' emer' : '') + '">' + esc(m.text) + '<time>' + hm(m.t) + '</time></div>';
-    });
-    h += '</div>';
-    var active = S.level >= 1 && !S.resolved && !S.taken && S.alerted.indexOf(who) >= 0;
-    h += '<div class="reply' + (active ? '' : ' off') + '"><button class="y" data-reply="' + who + ':yes">Reply YES</button><button class="l" data-reply="' + who + ':later">LATER</button></div></div>';
-    if (p.call) {
-      var live = p.call.state === 'live';
-      var secs = live ? Math.floor((performance.now() - p.call.since) / 1000) : 0;
-      h += '<div class="call' + (live ? ' live' : '') + '"><div class="cav">L</div><b>' + esc(p.call.from) + '</b><div class="sub">' + (live ? 'Connected · 0:' + (secs < 10 ? '0' : '') + secs : 'Gran Care emergency call · +91 90000 11111') + '</div>';
-      h += '<div class="say">' + (live ? 'You are now on the phone with ' + PATIENT + '. Reply YES afterwards to stop the alerts.' : PATIENT + ' has not taken ' + esc(med) + ' and nobody has replied.') + '</div>';
-      h += '<div class="btns">' + (live ? '<button class="dec" data-call="' + who + ':end">End</button>' : '<button class="dec" data-call="' + who + ':dec">Decline</button><button class="acc" data-call="' + who + ':acc">Answer</button>') + '</div>';
-      h += '<div class="cap">' + (p.call.level === 3 ? 'Guardian call (level 3)' : 'Emergency call (level 2)') + '</div></div>';
+    var p = S[who], name = who === 'son' ? SON : GRD, n = unread(p), h = '';
+    if (!p.open) {
+      // lock screen: the person is busy; alerts wait as notifications until opened
+      h += '<div class="flock"><div class="big">' + hm(S.t) + '</div><div class="busy">' + (who === 'son' ? 'In a meeting in Bengaluru' : 'At home, 2 houses away') + '</div>';
+      var ins = p.msgs.filter(function (m) { return m.dir === 'in' && !m.seen; });
+      if (!ins.length) h += '<div class="busy">No new notifications</div>';
+      ins.slice(-3).reverse().forEach(function (m) {
+        h += '<button class="noti' + (m.emer ? ' emer' : '') + '" data-open="' + who + '"><span class="nh"><span>GRAN CARE · ' + hm(m.t) + '</span>' + (n > 1 ? '<span class="badge">' + n + '</span>' : '') + '</span><span class="nt">' + esc(m.text) + '</span><span class="tap">Tap to open</span></button>';
+      });
+      h += '</div>';
+    } else {
+      h += '<div class="msgs"><div class="mhead"><div class="av">GC</div><div><b>Gran Care</b><span>about Lakshmi · +91 90000 11111</span></div></div><div class="thread">';
+      if (!p.msgs.length) h += '<div class="empty">No alerts. If ' + PATIENT + ' misses a dose, the alert arrives here.</div>';
+      p.msgs.forEach(function (m) {
+        if (m.dir === 'sys') { h += '<div class="bub sys">' + esc(m.text) + '</div>'; return; }
+        h += '<div class="bub in' + (m.emer ? ' emer' : '') + '">' + esc(m.text) + '<time>' + hm(m.t) + '</time></div>';
+        h += m.seen ? '<div class="unseen" style="color:#0a7f5a">Seen ' + hm(m.seenAt || m.t) + '</div>' : '';
+      });
+      h += '</div><div class="backbar"><button data-close="' + who + '">Lock phone</button></div></div>';
     }
+    if (who === 'grd' && p.call) {
+      var live = p.call.state === 'live', secs = live ? Math.floor((performance.now() - p.call.since) / 1000) : 0;
+      h += '<div class="call' + (live ? ' live' : '') + '"><div class="cav">L</div><b>' + PATIENT + '’s phone</b><div class="sub">' + (live ? 'Connected · 0:' + (secs < 10 ? '0' : '') + secs : 'Gran Care medical emergency · +91 90000 11111') + '</div>';
+      h += '<div class="say">' + (live ? 'You are on the phone with ' + PATIENT + '. Her son could not be reached.' : PATIENT + ' has not taken her medicine and her son has not seen the alert.') + '</div>';
+      h += '<div class="btns">' + (live ? '<button class="dec" data-call="end">End</button>' : '<button class="dec" data-call="dec">Decline</button><button class="acc" data-call="acc">Answer</button>') + '</div><div class="cap">Emergency call to the local guardian</div></div>';
+    }
+    return h;
+  }
+
+  function clinicHTML() {
+    var h = '<div class="ch"><div class="cic">+</div><div><b>CarePlus Clinic</b><span>Nearest clinic · 1.2 km · +91 44 2615 0000</span></div></div>';
+    if (!S.clinic.msgs.length) h += '<div class="ce">Notified only in a medical emergency.</div>';
+    S.clinic.msgs.forEach(function (m) { h += '<div class="cm' + (m.emer ? ' emer' : '') + '">' + esc(m.text) + '<br><small>' + hm(m.t) + '</small></div>'; });
     return h;
   }
 
   function watchHTML() {
     if (S.ringing) return '<div class="wk">Medicine</div><div class="wn">' + esc(med) + '</div><div class="wbtns"><button class="y" data-act="take">TAKEN</button>' + (S.snoozes < 2 && S.rings < 3 ? '<button class="l" data-act="snooze">LATER</button>' : '') + '</div>';
     if (S.taken) return '<div class="wt">' + hm(S.t) + '</div><div class="wk">✓ Dose recorded</div>';
-    return '<div class="wt">' + hm(S.t) + '</div><div class="wk">' + (S.level ? 'Family alerted' : 'Next 8:00 AM') + '</div>';
+    return '<div class="wt">' + hm(S.t) + '</div><div class="wk">' + (S.level === 2 ? 'Emergency' : S.level ? 'Son alerted' : 'Next 8:00 AM') + '</div>';
   }
 
   var lastSig = {}, lastEvents = -1;
@@ -484,19 +527,22 @@ select { font: inherit; font-weight: 600; font-size: 14px; padding: 8px 10px; bo
   }
   function render(now) {
     document.getElementById('simclock').textContent = fmt(S.t, true);
+    var done = S.taken || S.resolved || (S.level === 2 && !S.grd.call);
     var note = !playing ? (S.t === T0 ? 'Press Start. Morning dose at 8:00 AM.' : 'Paused')
       : waitingForHuman() ? 'Clock at real speed while someone has to answer'
-      : S.taken || S.resolved || S.level >= 3 && !S.son.call && !S.grd.call ? 'Sequence complete' : 'Running at ' + document.getElementById('speed').selectedOptions[0].text.toLowerCase();
+      : done && !S.ringing ? 'Sequence complete' : 'Running at ' + document.getElementById('speed').selectedOptions[0].text.toLowerCase();
     document.getElementById('simnote').textContent = note;
     [].forEach.call(document.querySelectorAll('[data-time]'), function (e) { e.textContent = hm(S.t); });
     setHTML('pat', patientHTML(now));
     setHTML('son', famHTML('son'));
     setHTML('grd', famHTML('grd'));
     setHTML('wface', watchHTML());
+    setHTML('clinic', clinicHTML());
     document.getElementById('ph-patient').classList.toggle('buzz', S.ringing);
     document.getElementById('watch').classList.toggle('buzz', S.ringing);
-    document.getElementById('ph-son').classList.toggle('buzz', !!(S.son.call && S.son.call.state === 'ringing'));
+    document.getElementById('ph-son').classList.toggle('buzz', false);
     document.getElementById('ph-grd').classList.toggle('buzz', !!(S.grd.call && S.grd.call.state === 'ringing'));
+    document.getElementById('clinic').classList.toggle('ring', S.clinic.ringing);
     if (S.events.length !== lastEvents) {
       lastEvents = S.events.length;
       var ul = document.getElementById('events');
@@ -523,10 +569,10 @@ select { font: inherit; font-weight: 600; font-size: 14px; padding: 8px 10px; bo
     if (kind === 'sms') { tone(1320, t, 0.12, 'sine', 0.12); tone(1760, t + 0.13, 0.16, 'sine', 0.12); }
   }
   function sounds(now) {
-    if (!ac || !sound || now < nextBeep) return;
+    if (!ac || !sound || now < nextBeep || !playing) return;
     var t = ac.currentTime + 0.01;
-    if (S.ringing && playing) { for (var i = 0; i < 4; i++) tone(i % 2 ? 1046 : 880, t + i * 0.16, 0.12, 'square', 0.06); nextBeep = now + 1100; }
-    else if (playing && ((S.son.call && S.son.call.state === 'ringing') || (S.grd.call && S.grd.call.state === 'ringing'))) { tone(440, t, 0.4, 'sine', 0.1); tone(480, t, 0.4, 'sine', 0.06); tone(440, t + 0.5, 0.4, 'sine', 0.1); nextBeep = now + 2400; }
+    if (S.ringing) { for (var i = 0; i < 4; i++) tone(i % 2 ? 1046 : 880, t + i * 0.16, 0.12, 'square', 0.06); nextBeep = now + 1100; }
+    else if (S.grd.call && S.grd.call.state === 'ringing') { tone(440, t, 0.4, 'sine', 0.1); tone(480, t, 0.4, 'sine', 0.06); tone(440, t + 0.5, 0.4, 'sine', 0.1); nextBeep = now + 2400; }
   }
   function speak(text) {
     if (!sound || !window.speechSynthesis) return;
@@ -541,7 +587,6 @@ select { font: inherit; font-weight: 600; font-size: 14px; padding: 8px 10px; bo
     audio();
     var n = due();
     if (n) { S.t = n; step(performance.now()); }
-    else if (!S.ringing && S.rings === 0) { S.t = DOSE_AT; step(performance.now()); }
     playing = true;
   });
   document.getElementById('speed').addEventListener('change', function (e) { speed = Number(e.target.value) || 120; });
@@ -557,15 +602,14 @@ select { font: inherit; font-weight: 600; font-size: 14px; padding: 8px 10px; bo
     });
   });
   document.addEventListener('click', function (e) {
-    var t = e.target.closest('[data-act],[data-reply],[data-call]'); if (!t) return;
+    var t = e.target.closest('[data-act],[data-open],[data-close],[data-call]'); if (!t) return;
     audio();
     if (t.dataset.act === 'take') take();
     else if (t.dataset.act === 'snooze') snooze();
-    else if (t.dataset.reply) { var r = t.dataset.reply.split(':'); reply(r[0], r[1]); }
-    else if (t.dataset.call) {
-      var c = t.dataset.call.split(':');
-      if (c[1] === 'acc') answer(c[0]); else decline(c[0]);
-    }
+    else if (t.dataset.open) open(t.dataset.open);
+    else if (t.dataset.close) S[t.dataset.close].open = false;
+    else if (t.dataset.call === 'acc') answer();
+    else if (t.dataset.call) decline();
   });
 
   reset();

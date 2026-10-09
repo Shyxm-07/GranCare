@@ -11,7 +11,7 @@ is missed. It comes as an Android phone app, a Wear OS watch app, and a web vers
 
 ## Demo
 
-[`demo/index.html`](demo/index.html) is a self-contained simulation of the whole alert sequence for presentations: the patient's phone and watch, the son's phone and the local guardian's phone side by side, with a fast demo clock, scripted scenarios (patient takes it, son replies YES, nobody responds) and a live timeline. Open it in any browser; nothing is sent.
+[`demo/index.html`](demo/index.html) is a self-contained simulation of the whole alert sequence for presentations: the patient's phone and watch, the son's phone and the local guardian's phone side by side, with a fast demo clock, scripted scenarios (patient takes it, son sees the alert, son is busy and it becomes a medical emergency) and a live timeline. Open it in any browser; nothing is sent.
 
 ## Download
 
