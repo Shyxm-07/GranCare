@@ -14,6 +14,49 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  tests:
+    name: Tests (login, sign-up, security rules, alarms)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            web/package-lock.json
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        run: |
+          npm ci --prefix web
+          pip install playwright
+          python -m playwright install --with-deps chromium
+
+      - name: Alarm and escalation flow (on-phone mode)
+        env:
+          GC_FIREBASE_DISABLE: '1'
+        run: |
+          npm run build:app
+          python web/tests/app_flow.py
+
+      - name: Login, sign-up, family linking and security rules (Firebase emulators)
+        env:
+          GC_FIREBASE_EMULATOR: '1'
+        run: |
+          npm run build:app
+          npx -y firebase-tools@14 emulators:exec --project demo-grancare --only auth,firestore "python web/tests/auth_flow.py"
+
   phone:
     name: Phone app (Capacitor)
     runs-on: ubuntu-latest
@@ -92,7 +135,7 @@ jobs:
   release:
     name: Publish download
     if: github.event_name != 'pull_request'
-    needs: [phone, watch]
+    needs: [tests, phone, watch]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/download-artifact@v4
