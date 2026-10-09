@@ -63,8 +63,34 @@
       patientName: p.name || '', patientPhone: p.phone || '',
       children: (p.children || []).filter(function (c) { return c.phone; }),
       guardian: p.guardian && p.guardian.phone ? p.guardian : null,
-      autoAlerts: p.autoAlerts !== false
+      address: p.address || '',
+      clinic: p.clinic && p.clinic.phone ? p.clinic : null,
+      autoAlerts: p.autoAlerts !== false,
+      firestore: window.__gcLinks ? window.__gcLinks.firestore : null
     };
+  }
+  // ---------- "seen" links: one per dose for today and tomorrow, handed to the native layer ----------
+  var lastLinks = '', linking = false;
+  function dayStr(off) { var d = new Date(); d.setDate(d.getDate() + off); return G().today(d); }
+  function syncLinks(sched, p) {
+    var L = window.__gcLinks; if (!L || !L.base || linking) return;
+    var want = [];
+    [0, 1].forEach(function (off) {
+      var day = dayStr(off);
+      sched.forEach(function (m) {
+        m.slots.forEach(function (s) {
+          var due = new Date(day + 'T00:00:00'); due.setHours(s.hour, s.minute, 0, 0);
+          want.push({ k: L.key(m.id, s.key, day), info: { patientName: p.name || '', medName: m.name, dueAt: due.toISOString() } });
+        });
+      });
+    });
+    var sig = JSON.stringify(want.map(function (w) { return w.k; }));
+    if (sig === lastLinks) return;
+    linking = true;
+    Promise.all(want.map(function (w) { return L.linkFor(w.k, w.info); })).then(function (tokens) {
+      var map = {}; want.forEach(function (w, i) { if (tokens[i]) map[w.k] = tokens[i]; });
+      return P.setLinks({ links: map, base: L.base }).then(function () { if (Object.keys(map).length === want.length) lastLinks = sig; });
+    }).catch(function () {}).then(function () { linking = false; });
   }
   var api = {
     permissionsOk: false,
@@ -76,13 +102,15 @@
       var sched = JSON.stringify(isPatient ? scheduleFromMeds(g.S) : []);
       if (isPatient && window.__gcEsc) {
         window.__gcEsc.all().forEach(function (a) {
-          if (a.resolved === 'ack' && !relayed[a.id] && a.ackBy !== 'device') {
+          // Seen on another phone (son's app) or through the SMS link: stop the native emergency timer.
+          if ((a.resolved === 'seen' || a.resolved === 'ack') && !relayed[a.id] && a.ackBy !== 'device') {
             relayed[a.id] = 1;
-            P.acknowledge({ medId: a.medId, slot: a.slot, day: a.day, ackType: a.ackType || 'yes' }).catch(function () {});
+            P.acknowledge({ medId: a.medId, slot: a.slot, day: a.day, ackType: 'seen' }).catch(function () {});
           }
         });
       }
       if (sched !== lastSchedule) { lastSchedule = sched; P.setSchedule({ meds: JSON.parse(sched) }).catch(function (e) { console.warn('setSchedule', e); }); }
+      if (isPatient) syncLinks(JSON.parse(sched), g.S.profile || {});
       var lang = g.S.settings.language || 'en-US';
       if (lang !== lastLang) { lastLang = lang; P.setLanguage({ language: lang }).catch(function () {}); }
       renderSetup();
@@ -165,7 +193,7 @@
         if (e.type === 'alert' || e.type === 'ack' || e.type === 'resolved') {
           var k = day + '_' + e.medId + '_' + e.slot, data = { day: day, medId: e.medId, medName: e.medName, slot: e.slot };
           if (e.type === 'alert') { data.level = e.level; data['level' + e.level + 'At'] = e.at; g.S.db.collection('events').add(Object.assign({ type: 'alert', level: e.level }, base)).catch(function () {}); }
-          if (e.type === 'ack') { data.resolved = 'ack'; data.ackType = e.ackType; data.ackBy = e.by || ''; data.ackAt = e.at; g.S.db.collection('events').add(Object.assign({ type: 'ack', ackType: e.ackType, ackName: e.by || '' }, base)).catch(function () {}); }
+          if (e.type === 'ack') { data.resolved = e.ackType === 'seen' ? 'seen' : 'ack'; data.ackType = e.ackType; data.ackBy = e.by || ''; data.ackAt = e.at; g.S.db.collection('events').add(Object.assign({ type: 'ack', ackType: e.ackType, ackName: e.by || '' }, base)).catch(function () {}); }
           if (e.type === 'resolved') { data.resolved = e.reason || 'taken'; data.resolvedAt = e.at; }
           var ref = g.S.db.doc('alerts/' + k);
           ref.get().then(function (s) { return ref.set(Object.assign({}, s.exists ? s.data() : {}, data)); }).catch(function () {});

@@ -13,6 +13,7 @@
     var row = document.createElement('div');
     row.className = 'bg-[#f0f4fa] flex flex-col gap-[8px] p-[12px] rounded-[12px] w-full';
     row.setAttribute('data-child', '');
+    if (c.uid) row.setAttribute('data-uid', c.uid);
     var input = 'fi font-normal text-[16px] leading-[normal] w-full min-w-0 h-[44px] px-[12px] rounded-[8px] border-0 bg-white outline-none text-[#181c21] placeholder:text-[#707881]';
     row.innerHTML =
       '<div class="flex gap-[8px] items-center w-full">' +
@@ -35,7 +36,9 @@
   }
   function readChildren() {
     return [].slice.call(document.querySelectorAll('#pf-children [data-child]')).map(function (r) {
-      return { name: $('[data-f=name]', r).value.trim(), relation: $('[data-f=relation]', r).value, phone: $('[data-f=phone]', r).value.trim() };
+      var c = { name: $('[data-f=name]', r).value.trim(), relation: $('[data-f=relation]', r).value, phone: $('[data-f=phone]', r).value.trim() };
+      if (r.getAttribute('data-uid')) c.uid = r.getAttribute('data-uid');
+      return c;
     }).filter(function (c) { return c.name || c.phone; });
   }
   function fill(p) {
@@ -43,6 +46,8 @@
     var g = p.guardian || {};
     $('#pf-g-name').value = g.name || ''; $('#pf-g-phone').value = g.phone || '';
     $('#pf-auto').checked = p.autoAlerts !== false;
+    var cl = p.clinic || {};
+    $('#pf-address').value = p.address || ''; $('#pf-c-name').value = cl.name || ''; $('#pf-c-phone').value = cl.phone || '';
     var list = $('#pf-children'); list.textContent = '';
     var kids = p.children && p.children.length ? p.children : [{}];
     kids.forEach(function (c) { list.appendChild(childRow(c)); });
@@ -64,15 +69,19 @@
     var children = readChildren();
     var data = {
       name: $('#pf-name').value.trim(), phone: $('#pf-phone').value.trim(), children: children,
-      guardian: { name: $('#pf-g-name').value.trim(), phone: $('#pf-g-phone').value.trim() },
+      guardian: Object.assign({}, (g.S.profile || {}).guardian || {}, { name: $('#pf-g-name').value.trim(), phone: $('#pf-g-phone').value.trim() }),
+      address: $('#pf-address').value.trim(),
+      clinic: { name: $('#pf-c-name').value.trim(), phone: $('#pf-c-phone').value.trim() },
       autoAlerts: $('#pf-auto').checked, updatedAt: new Date().toISOString()
     };
     var bad = [];
     if (data.phone && !PHONE.test(data.phone)) bad.push(tr('Patient Phone'));
     children.forEach(function (c) { if (!c.name || !PHONE.test(c.phone)) bad.push(c.name || tr('Son / Daughter')); });
     if (data.guardian.phone && !PHONE.test(data.guardian.phone)) bad.push(tr('Guardian Phone'));
+    if (data.clinic.phone && !PHONE.test(data.clinic.phone)) bad.push(tr('Clinic Phone'));
     if (bad.length) { g.toast(tr('Check the phone number for: {list}.', { list: bad.join(', ') }), 'warn'); return; }
     if (!children.length && !data.guardian.phone) g.toast('Add at least one son, daughter or guardian so someone can be alerted.', 'warn');
+    else if (!data.guardian.phone && !data.clinic.phone) g.toast('Add a local guardian or a nearby clinic for emergencies.', 'warn');
     var sa = window.__gcStandalone, key = $('#pf-key') ? $('#pf-key').value.trim() : '';
     if (sa && key && key.indexOf('•') < 0) sa.setApiKey(key);
     if (sa && !key) sa.setApiKey('');
@@ -99,7 +108,7 @@
     $('#pf-add-child').addEventListener('click', function () { $('#pf-children').appendChild(childRow({})); dirty = true; });
     $('#pf-save').addEventListener('click', save);
     $('#pf-test').addEventListener('click', testAlert);
-    ['pf-name', 'pf-phone', 'pf-g-name', 'pf-g-phone', 'pf-key', 'pf-auto'].forEach(function (id) { var el = document.getElementById(id); if (el) el.addEventListener('input', function () { dirty = true; }); });
+    ['pf-name', 'pf-phone', 'pf-g-name', 'pf-g-phone', 'pf-address', 'pf-c-name', 'pf-c-phone', 'pf-key', 'pf-auto'].forEach(function (id) { var el = document.getElementById(id); if (el) el.addEventListener('input', function () { dirty = true; }); });
     $('#pf-auto').addEventListener('change', function () { dirty = true; });
     $('#pf-key').addEventListener('focus', function () { if (this.value.indexOf('•') >= 0) this.value = ''; });
   }
