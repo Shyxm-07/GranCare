@@ -65,6 +65,7 @@ public final class EscalationEngine {
     public static final String ACTION_CHECK = "com.grancare.app.CHECK";
     public static final String ACTION_TAKEN = "com.grancare.app.TAKEN";
     public static final String ACTION_SNOOZE = "com.grancare.app.SNOOZE";
+    public static final String ACTION_TEST_ALARM = "com.grancare.app.TEST_ALARM";
     public static final String EXTRA_KEY = "doseKey";
 
     static final String CH_ALARM = "gc_alarm_v1";
@@ -96,6 +97,12 @@ public final class EscalationEngine {
     public JSONObject contacts() { return obj("contacts"); }
 
     private JSONObject states() { return obj("states"); }
+    /** Current state of one dose (empty when unknown). */
+    JSONObject doseState(String key) { return state(key); }
+
+    public String prefsLanguage() { String l = prefs.getString("language", "en"); return l == null ? "en" : l; }
+    public void setLanguage(String lang) { prefs.edit().putString("language", lang == null ? "en" : lang.split("-")[0]).apply(); }
+
     private JSONObject state(String key) {
         JSONObject s = states().optJSONObject(key);
         return s != null ? s : new JSONObject();
@@ -235,7 +242,7 @@ public final class EscalationEngine {
             s.put("nextRingAt", rings >= ESCALATE_ON_RING ? 0 : System.currentTimeMillis() + SNOOZE_MS);
         } catch (JSONException ignored) { }
         saveState(key, s);
-        showAlarm(key, s);
+        AlarmService.ring(ctx, key);
         if (rings >= ESCALATE_ON_RING && s.optInt("level") == 0 && !s.has("resolved")) escalate(key, 1);
         reschedule();
     }
@@ -245,6 +252,7 @@ public final class EscalationEngine {
         JSONObject s = state(key);
         if (s.length() == 0 || s.optBoolean("taken")) return false;
         cancelNotification(key);
+        AlarmService.stop(ctx, key);
         if (s.optInt("snoozes") >= MAX_SNOOZES || s.optInt("rings") >= ESCALATE_ON_RING) {
             if (s.optInt("level") == 0 && !s.has("resolved")) escalate(key, 1);
             return false;
@@ -267,6 +275,7 @@ public final class EscalationEngine {
         if (s.length() == 0) return;
         try { s.put("taken", true); s.put("nextRingAt", 0); } catch (JSONException ignored) { }
         cancelNotification(key);
+        AlarmService.stop(ctx, key);
         cancelAlarm(ACTION_RING, key); cancelAlarm(ACTION_CHECK, key);
         if (s.optInt("level") >= 1 && !s.has("resolved")) {
             try { s.put("resolved", "taken"); } catch (JSONException ignored) { }
@@ -458,38 +467,6 @@ public final class EscalationEngine {
             .setPriority(NotificationCompat.PRIORITY_HIGH).setContentIntent(open).setAutoCancel(true).build());
     }
 
-    /** Loud alarm notification with TAKEN / SNOOZE; mirrors to paired smartwatches. */
-    private void showAlarm(String key, JSONObject s) {
-        ensureChannels();
-        Intent open = new Intent(ctx, MainActivity.class).putExtra(EXTRA_KEY, key)
-            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_SINGLE_TOP);
-        PendingIntent full = PendingIntent.getActivity(ctx, key.hashCode(), open, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
-        String med = s.optString("medName") + (s.optString("dosage").isEmpty() ? "" : " " + s.optString("dosage"));
-        String text = s.optString("instructions").isEmpty() ? "Tap TAKEN once you have taken it." : s.optString("instructions");
-        int rings = s.optInt("rings");
-        NotificationCompat.Builder b = new NotificationCompat.Builder(ctx, CH_ALARM)
-            .setSmallIcon(android.R.drawable.ic_lock_idle_alarm)
-            .setContentTitle("Time to take " + med)
-            .setContentText(text)
-            .setStyle(new NotificationCompat.BigTextStyle().bigText(text + (rings >= ESCALATE_ON_RING ? "\nYour family is being alerted." : "")))
-            .setCategory(NotificationCompat.CATEGORY_ALARM)
-            .setPriority(NotificationCompat.PRIORITY_MAX)
-            .setFullScreenIntent(full, true)
-            .setContentIntent(full)
-            .setAutoCancel(true)
-            .setTimeoutAfter(9 * MIN)
-            .addAction(0, "TAKEN", actionPi(ACTION_TAKEN, key));
-        if (s.optInt("snoozes") < MAX_SNOOZES && rings < ESCALATE_ON_RING) b.addAction(0, "LATER (10 MIN)", actionPi(ACTION_SNOOZE, key));
-        Notification n = b.build();
-        n.flags |= Notification.FLAG_INSISTENT;
-        notify(key.hashCode(), n);
-    }
-
-    private PendingIntent actionPi(String action, String key) {
-        Intent i = new Intent(ctx, AlarmReceiver.class).setAction(action).putExtra(EXTRA_KEY, key);
-        return PendingIntent.getBroadcast(ctx, (action + key).hashCode(), i, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
-    }
-
     void ensureChannels() {
         NotificationManager nm = ctx.getSystemService(NotificationManager.class);
         if (nm.getNotificationChannel(CH_ALARM) == null) {
@@ -509,6 +486,25 @@ public final class EscalationEngine {
     }
 
     // ------------------------------------------------------------------ test
+
+    /** Rings the real alarm page after a few seconds, so the patient can hear and see it. */
+    public void scheduleTestAlarm(int seconds) {
+        Intent i = new Intent(ctx, AlarmReceiver.class).setAction(ACTION_TEST_ALARM).putExtra(EXTRA_KEY, AlarmService.TEST_KEY);
+        PendingIntent pi = PendingIntent.getBroadcast(ctx, 9901, i, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+        setAlarmRaw(pi, System.currentTimeMillis() + Math.max(1, seconds) * 1000L);
+    }
+
+    private void setAlarmRaw(PendingIntent pi, long at) {
+        AlarmManager am = ctx.getSystemService(AlarmManager.class);
+        boolean exact = Build.VERSION.SDK_INT < 31 || am.canScheduleExactAlarms();
+        try {
+            if (exact) {
+                PendingIntent show = PendingIntent.getActivity(ctx, 1, new Intent(ctx, MainActivity.class), PendingIntent.FLAG_IMMUTABLE);
+                am.setAlarmClock(new AlarmManager.AlarmClockInfo(at, show), pi);
+            } else am.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, at, pi);
+        } catch (SecurityException e) { am.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, at, pi); }
+    }
+
 
     public int testAlert() {
         String msg = String.format(Locale.US, "Gran Care test: missed-dose alerts for %s are set up on this phone. If a dose is missed you will get a message here. Reply YES or LATER to answer an alert.", patient());

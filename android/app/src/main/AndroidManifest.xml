@@ -36,6 +36,24 @@
                 android:resource="@xml/file_paths"></meta-data>
         </provider>
 
+        <!-- The alarm page: opens by itself over the lock screen and other apps -->
+        <activity
+            android:name=".AlarmActivity"
+            android:exported="false"
+            android:theme="@style/AppTheme.Alarm"
+            android:launchMode="singleTask"
+            android:taskAffinity="com.grancare.app.alarm"
+            android:excludeFromRecents="true"
+            android:showWhenLocked="true"
+            android:turnScreenOn="true"
+            android:screenOrientation="portrait" />
+
+        <!-- Rings the alarm (sound, vibration, voice) with the app closed -->
+        <service
+            android:name=".AlarmService"
+            android:exported="false"
+            android:foregroundServiceType="mediaPlayback" />
+
         <!-- Dose alarms, escalation timers, TAKEN / LATER buttons -->
         <receiver android:name=".AlarmReceiver" android:exported="false" />
 
@@ -71,6 +89,11 @@
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <uses-permission android:name="android.permission.VIBRATE" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
+    <!-- Alarm page over other apps (like an alarm-clock app) and unrestricted background alarms -->
+    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
+    <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
     <!-- Family alerts: send messages, read YES / LATER replies, place emergency calls -->
     <uses-permission android:name="android.permission.SEND_SMS" />
     <uses-permission android:name="android.permission.RECEIVE_SMS" />

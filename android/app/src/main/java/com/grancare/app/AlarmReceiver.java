@@ -15,11 +15,20 @@ public class AlarmReceiver extends BroadcastReceiver {
         new Thread(() -> {
             try {
                 EscalationEngine e = new EscalationEngine(context);
+                // "*" = every dose that is ringing right now (buttons on the ringing notification / watch)
+                java.util.List<String> keys = "*".equals(key) ? AlarmService.activeKeys() : java.util.Collections.singletonList(key);
                 switch (action) {
                     case EscalationEngine.ACTION_RING: e.onRing(key); break;
                     case EscalationEngine.ACTION_CHECK: e.onCheck(key); break;
-                    case EscalationEngine.ACTION_TAKEN: e.markTaken(key, false); break;
-                    case EscalationEngine.ACTION_SNOOZE: e.snooze(key, false); break;
+                    case EscalationEngine.ACTION_TEST_ALARM: AlarmService.test(context); break;
+                    case EscalationEngine.ACTION_TAKEN:
+                        for (String k : keys) if (!AlarmService.TEST_KEY.equals(k)) e.markTaken(k, false);
+                        AlarmService.stop(context, "*");
+                        break;
+                    case EscalationEngine.ACTION_SNOOZE:
+                        for (String k : keys) if (!AlarmService.TEST_KEY.equals(k)) e.snooze(k, false);
+                        AlarmService.stop(context, "*");
+                        break;
                     default: break;
                 }
             } finally {

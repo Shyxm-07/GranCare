@@ -1,7 +1,13 @@
 package com.grancare.app;
 
 import android.Manifest;
+import android.app.AlarmManager;
+import android.app.NotificationManager;
 import android.content.Intent;
+import android.net.Uri;
+import android.os.Build;
+import android.os.PowerManager;
+import android.provider.Settings;
 
 import com.getcapacitor.JSArray;
 import com.getcapacitor.JSObject;
@@ -119,6 +125,59 @@ public class GranCareNativePlugin extends Plugin {
         }
         JSObject r = new JSObject(); r.put("events", out);
         call.resolve(r);
+    }
+
+    @PluginMethod
+    public void setLanguage(PluginCall call) {
+        engine.setLanguage(call.getString("language", "en"));
+        call.resolve();
+    }
+
+    /** What Android still has to allow for the alarm to behave like a real alarm clock. */
+    @PluginMethod
+    public void alarmSetup(PluginCall call) {
+        android.content.Context c = getContext();
+        JSObject r = new JSObject();
+        AlarmManager am = c.getSystemService(AlarmManager.class);
+        NotificationManager nm = c.getSystemService(NotificationManager.class);
+        PowerManager pm = c.getSystemService(PowerManager.class);
+        r.put("notifications", nm.areNotificationsEnabled());
+        r.put("exact", Build.VERSION.SDK_INT < 31 || am.canScheduleExactAlarms());
+        r.put("fullScreen", Build.VERSION.SDK_INT < 34 || nm.canUseFullScreenIntent());
+        r.put("overlay", Settings.canDrawOverlays(c));
+        r.put("battery", pm.isIgnoringBatteryOptimizations(c.getPackageName()));
+        call.resolve(r);
+    }
+
+    /** Opens the system screen that grants one alarm permission. */
+    @PluginMethod
+    public void openAlarmSetting(PluginCall call) {
+        String which = call.getString("which", "");
+        android.content.Context c = getContext();
+        Uri pkg = Uri.parse("package:" + c.getPackageName());
+        Intent i;
+        switch (which) {
+            case "overlay": i = new Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, pkg); break;
+            case "fullScreen": i = Build.VERSION.SDK_INT >= 34 ? new Intent(Settings.ACTION_MANAGE_APP_USE_FULL_SCREEN_INTENT, pkg) : null; break;
+            case "exact": i = Build.VERSION.SDK_INT >= 31 ? new Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM, pkg) : null; break;
+            case "battery": i = new Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS, pkg); break;
+            case "notifications": i = new Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).putExtra(Settings.EXTRA_APP_PACKAGE, c.getPackageName()); break;
+            default: i = null;
+        }
+        if (i == null) { call.resolve(); return; }
+        try {
+            i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            c.startActivity(i);
+        } catch (Exception e) {
+            try { c.startActivity(new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, pkg).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)); } catch (Exception ignored) { }
+        }
+        call.resolve();
+    }
+
+    @PluginMethod
+    public void testAlarm(PluginCall call) {
+        engine.scheduleTestAlarm(call.getInt("seconds", 5));
+        call.resolve();
     }
 
     @PluginMethod
