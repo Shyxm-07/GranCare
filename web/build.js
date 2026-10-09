@@ -113,9 +113,9 @@ const firebaseJs = () => {
   const emu = process.env.GC_FIREBASE_EMULATOR === '1';
   const cfgFile = 'firebase-config.js';
   let cfg = fs.existsSync(cfgFile) ? fs.readFileSync(cfgFile, 'utf8') : '';
-  if (emu) cfg = "window.GC_FIREBASE_EMULATOR=true;window.GC_FIREBASE_CONFIG={apiKey:'demo-key',authDomain:'demo-grancare.firebaseapp.com',projectId:'demo-grancare',appId:'demo'};";
+  if (emu) cfg = "window.GC_FIREBASE_EMULATOR=true;window.GC_FIREBASE_CONFIG={apiKey:'demo-key',authDomain:'demo-grancare.firebaseapp.com',projectId:'demo-grancare',appId:'demo'};window.GC_SEEN_BASE='http://127.0.0.1:5056/seen/';";
   if (process.env.GC_FIREBASE_MOCK === '1') { // local UI tests only
-    return js('tests/firebase-mock.js') + '\n' + "window.GC_FIREBASE_CONFIG={apiKey:'mock'};" + '\n' + js('cloud.js');
+    return js('tests/firebase-mock.js') + '\n' + "window.GC_FIREBASE_CONFIG={apiKey:'mock',projectId:'mock'};window.GC_SEEN_BASE='https://example.test/seen/';" + '\n' + js('cloud.js');
   }
   if (!/apiKey\s*:\s*['"][^'"]+/.test(cfg)) return ''; // no Firebase project yet: on-phone mode
   const sdk = ['firebase-app-compat.js', 'firebase-auth-compat.js', 'firebase-firestore-compat.js']

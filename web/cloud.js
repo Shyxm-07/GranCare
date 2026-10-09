@@ -237,6 +237,53 @@
     });
   }
 
+  // ---------- "seen" links for the alert SMS (free: Firestore Spark plan + GitHub Pages) ----------
+  // The patient's phone makes one link per upcoming dose: alertLinks/{token}, a public-by-token
+  // record, plus families/{fid}/linkTokens/{medId|slot|day} -> token so the family can find it.
+  // The son's SMS carries GC_SEEN_BASE#token. Opening that page, or the alert in the app, sets
+  // seenAt; the patient's phone checks it 20 minutes later before declaring an emergency.
+  var tokenWait = {};
+  function linkKey(medId, slot, day) { return medId + '|' + slot + '|' + day; }
+  function newToken() {
+    var a = new Uint8Array(18), s = ''; crypto.getRandomValues(a);
+    for (var i = 0; i < a.length; i++) s += ('0' + a[i].toString(16)).slice(-2);
+    return s;
+  }
+  function tokenRef(k) { return fs.doc('families/' + account.familyId + '/linkTokens/' + k.replace(/\//g, '_')); }
+  /** Token for this dose; the patient creates it if missing. Resolves '' when there is none. */
+  function linkFor(k, info) {
+    if (!account) return Promise.resolve('');
+    if (tokenWait[k]) return tokenWait[k];
+    var p = tokenRef(k).get().then(function (s) {
+      if (s.exists && s.data().token) return s.data().token;
+      if (account.role !== 'patient' || !info) return '';
+      var t = newToken(), now = new Date().toISOString();
+      return fs.doc('alertLinks/' + t).set({ patientName: info.patientName || account.name || '', medName: info.medName || '',
+        dueAt: info.dueAt || '', createdBy: account.uid, createdAt: now })
+        .then(function () { return tokenRef(k).set({ token: t, createdAt: now }); })
+        .then(function () { return t; });
+    }).catch(function () { delete tokenWait[k]; return ''; });
+    tokenWait[k] = p;
+    return p.then(function (t) { if (!t) delete tokenWait[k]; return t; });
+  }
+  /** seenAt / seenVia of a link ('' when not seen or unknown). */
+  function linkStatus(token) {
+    if (!token) return Promise.resolve({});
+    return fs.doc('alertLinks/' + token).get().then(function (s) { return s.exists ? s.data() : {}; }).catch(function () { return {}; });
+  }
+  function markSeen(k, via) {
+    return linkFor(k).then(function (t) {
+      if (!t) return false;
+      return fs.doc('alertLinks/' + t).update({ seenAt: new Date().toISOString(), seenVia: via || 'app' })
+        .then(function () { return true; }, function () { return false; }); // already seen: rules refuse a 2nd update
+    });
+  }
+  window.__gcLinks = {
+    key: linkKey, linkFor: linkFor, status: linkStatus, markSeen: markSeen,
+    base: window.GC_SEEN_BASE || '',
+    firestore: { projectId: cfg.projectId || '', apiKey: cfg.apiKey || '', host: window.GC_FIREBASE_EMULATOR ? '127.0.0.1:8080' : '' }
+  };
+
   // ---------- account card on Profile ----------
   function renderAccount() {
     var card = document.getElementById('pf-account'); if (!card) return;
