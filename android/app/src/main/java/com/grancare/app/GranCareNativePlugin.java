@@ -96,9 +96,12 @@ public class GranCareNativePlugin extends Plugin {
 
     @PluginMethod
     public void acknowledge(PluginCall call) {
-        String type = "later".equals(call.getString("ackType")) ? "later" : "yes";
+        String t = call.getString("ackType", "seen");
+        String type = "later".equals(t) || "yes".equals(t) ? t : "seen";
+        String medId = call.getString("medId"), slot = call.getString("slot"), day = call.getString("day");
+        String only = medId != null && slot != null && day != null ? EscalationEngine.key(medId, slot, day) : null;
         new Thread(() -> {
-            int n = engine.acknowledge(type, "", "");
+            int n = engine.acknowledge(type, call.getString("by", ""), "", only);
             JSObject r = new JSObject(); r.put("closed", n);
             call.resolve(r);
         }).start();
@@ -125,6 +128,13 @@ public class GranCareNativePlugin extends Plugin {
         }
         JSObject r = new JSObject(); r.put("events", out);
         call.resolve(r);
+    }
+
+    @PluginMethod
+    public void setLinks(PluginCall call) {
+        JSObject links = call.getObject("links", new JSObject());
+        engine.setLinks(links, call.getString("base", ""));
+        call.resolve();
     }
 
     @PluginMethod

@@ -45,12 +45,12 @@ import java.util.Set;
  * Rules (same as web/escalation.js):
  *  1. A dose alarm can be snoozed at most twice, 10 minutes each; an unanswered alarm
  *     re-rings every 10 minutes the same way.
- *  2. The 3rd alarm texts the sons / daughters (level 1).
- *  3. No YES / LATER reply within 20 minutes: emergency (level 2) - alert call to the
- *     first son / daughter, messages to the family and the local guardian.
- *  4. Still no reply 10 minutes later (level 3): alert call to the local guardian and
- *     messages to everyone.
- *  Taking the dose, or a YES / LATER reply (SMS or in-app), stops the escalation.
+ *  2. The 3rd alarm ("medication time window exhausted") texts the sons / daughters, with a
+ *     link that records that they have seen the alert (level 1).
+ *  3. If the alert is still unseen after 20 minutes (they often live far away), it is a medical
+ *     emergency (level 2): the local guardian is called and texted with the home address, the
+ *     nearby clinic is texted, and the sons / daughters get a notice.
+ *  Taking the dose, or the alert being seen (link, Gran Care app, or a YES reply), stops it.
  */
 public final class EscalationEngine {
     private static final String TAG = "GranCare";
@@ -59,7 +59,6 @@ public final class EscalationEngine {
     public static final int MAX_SNOOZES = 2;
     public static final int ESCALATE_ON_RING = 3;
     public static final long TO_EMERGENCY_MS = 20 * MIN;
-    public static final long TO_GUARDIAN_MS = 10 * MIN;
 
     public static final String ACTION_RING = "com.grancare.app.RING";
     public static final String ACTION_CHECK = "com.grancare.app.CHECK";
@@ -184,8 +183,8 @@ public final class EscalationEngine {
                         wanted.add(ACTION_RING + k);
                     }
                     int level = s.optInt("level");
-                    if (level >= 1 && level < 3 && !s.has("resolved")) {
-                        long at = s.optLong("levelAt") + (level == 1 ? TO_EMERGENCY_MS : TO_GUARDIAN_MS);
+                    if (level == 1 && !s.has("resolved")) {
+                        long at = s.optLong("levelAt") + TO_EMERGENCY_MS;
                         setAlarm(ACTION_CHECK, k, Math.max(at, now + 2000), false);
                         wanted.add(ACTION_CHECK + k);
                     }
@@ -295,17 +294,26 @@ public final class EscalationEngine {
         JSONObject s = state(key);
         if (s.optBoolean("taken") || s.has("resolved")) return;
         int level = s.optInt("level");
-        if (level == 1 && System.currentTimeMillis() >= s.optLong("levelAt") + TO_EMERGENCY_MS - 5000) escalate(key, 2);
-        else if (level == 2 && System.currentTimeMillis() >= s.optLong("levelAt") + TO_GUARDIAN_MS - 5000) escalate(key, 3);
-        else reschedule();
+        if (level == 1 && System.currentTimeMillis() >= s.optLong("levelAt") + TO_EMERGENCY_MS - 5000) {
+            // Has a son / daughter opened the alert link (or the alert in their Gran Care app)?
+            // One retry: the network can take a moment to come back when the phone wakes from sleep.
+            boolean seen = seenOnline(key);
+            if (!seen) { try { Thread.sleep(3000); } catch (InterruptedException ignored) { } seen = seenOnline(key); }
+            if (seen) { acknowledge("seen", "", "", key); return; }
+            escalate(key, 2);
+        } else reschedule();
     }
 
-    /** A family member answered YES or LATER (SMS reply or in-app button). */
-    public synchronized int acknowledge(String type, String byName, String byPhone) {
+    /** The alert was seen ("seen": link or app; "yes" / "later": SMS reply or in-app button). */
+    public synchronized int acknowledge(String type, String byName, String byPhone) { return acknowledge(type, byName, byPhone, null); }
+
+    /** Closes the open alert for {@code onlyKey}, or every open alert when it is null. */
+    public synchronized int acknowledge(String type, String byName, String byPhone, String onlyKey) {
         JSONObject all = states(); int n = 0;
         Iterator<String> it = all.keys(); List<String> keys = new ArrayList<>();
         while (it.hasNext()) keys.add(it.next());
         for (String k : keys) {
+            if (onlyKey != null && !onlyKey.equals(k)) continue;
             JSONObject s = all.optJSONObject(k);
             if (s == null || s.optInt("level") < 1 || s.has("resolved") || s.optBoolean("taken")) continue;
             n++;
@@ -314,6 +322,13 @@ public final class EscalationEngine {
             if ("later".equals(type)) { try { s.put("nextRingAt", System.currentTimeMillis() + SNOOZE_MS); s.put("rings", ESCALATE_ON_RING - 1); } catch (JSONException ignored) { } }
             saveState(k, s);
             String who = byName.isEmpty() ? "A family member" : byName;
+            if ("seen".equals(type)) {
+                notifyPatient(k.hashCode() + 7, "Your son / daughter has seen the alert", "They know you have not taken " + s.optString("medName") + " yet.");
+                JSONObject x = new JSONObject();
+                try { x.put("ackType", "seen"); x.put("by", byName); } catch (JSONException ignored) { }
+                emit("ack", s, x);
+                continue;
+            }
             String msg = "yes".equals(type)
                 ? String.format(Locale.US, "Gran Care: %s replied YES and is checking on %s.", who, patient())
                 : String.format(Locale.US, "Gran Care: %s replied LATER about %s's %s. The alarm will ring again.", who, patient(), s.optString("medName"));
@@ -349,24 +364,31 @@ public final class EscalationEngine {
         List<JSONObject> kids = children(); JSONObject g = guardian();
         List<String> to = new ArrayList<>(); String call = null; String msg; String patientNote;
 
+        String address = contacts().optString("address");
+        JSONObject clinic = contacts().optJSONObject("clinic");
+        String clinicPhone = clinic != null ? clinic.optString("phone") : "";
+        String clinicName = clinic != null && !clinic.optString("name").isEmpty() ? clinic.optString("name") : "the nearby clinic";
+        String gName = g != null && !g.optString("name").isEmpty() ? g.optString("name") : "the local guardian";
+        String extraMsg = null; List<String> extraTo = new ArrayList<>();
+
         if (level == 1) {
-            msg = String.format(Locale.US, "GRAN CARE ALERT: %s has not taken %s (due %s). The alarm was snoozed twice. Please check on them. Reply YES if you are on it, or LATER.", patient(), med, due);
+            String link = seenLink(key);
+            msg = String.format(Locale.US, "GRAN CARE ALERT: %s has not taken %s (due %s); the time window is over. Please call them.%s If this stays unseen for 20 minutes, %s and %s will be alerted.",
+                patient(), med, due, link.isEmpty() ? "" : " Tap to confirm you have seen this: " + link, gName, clinicName);
             for (JSONObject c : kids) to.add(c.optString("phone"));
             if (to.isEmpty() && g != null) to.add(g.optString("phone"));
             patientNote = "Your son / daughter has been alerted.";
-        } else if (level == 2) {
-            msg = String.format(Locale.US, "GRAN CARE EMERGENCY: %s still has not taken %s and nobody replied for 20 minutes. Please check on them now. Reply YES when you are on it.", patient(), med);
-            for (JSONObject c : kids) to.add(c.optString("phone"));
-            if (g != null) to.add(g.optString("phone"));
-            call = !kids.isEmpty() ? kids.get(0).optString("phone") : g != null ? g.optString("phone") : null;
-            patientNote = "Emergency: your family is being called.";
         } else {
-            String gName = g != null && !g.optString("name").isEmpty() ? g.optString("name") : "The local guardian";
-            msg = String.format(Locale.US, "GRAN CARE URGENT: Nobody has responded for 30 minutes about %s (%s not taken). %s is being called. Reply YES once someone is with them.", patient(), med, gName);
-            for (JSONObject c : kids) to.add(c.optString("phone"));
+            // Medical emergency: the family has not seen the alert for 20 minutes.
+            String where = address.isEmpty() ? "" : " at " + address;
+            msg = String.format(Locale.US, "GRAN CARE MEDICAL EMERGENCY: %s%s has not taken %s since %s and the family has not seen the alert for 20 minutes. Please go and check on them now.", patient(), where, med, due);
             if (g != null) to.add(g.optString("phone"));
-            call = g != null ? g.optString("phone") : kids.size() > 1 ? kids.get(1).optString("phone") : !kids.isEmpty() ? kids.get(0).optString("phone") : null;
-            patientNote = "Emergency: your local guardian is being called.";
+            if (!clinicPhone.isEmpty()) to.add(clinicPhone);
+            call = g != null ? g.optString("phone") : null;
+            extraMsg = String.format(Locale.US, "GRAN CARE: you have not seen the alert about %s for 20 minutes. %s and %s have now been alerted.", patient(), capital(gName), clinicName);
+            for (JSONObject c : kids) extraTo.add(c.optString("phone"));
+            if (to.isEmpty()) for (JSONObject c : kids) { to.add(c.optString("phone")); if (call == null) call = c.optString("phone"); }
+            patientNote = "Medical emergency: " + gName + " and " + clinicName + " are being alerted.";
         }
 
         boolean auto = contacts().optBoolean("autoAlerts", true);
@@ -374,6 +396,7 @@ public final class EscalationEngine {
         JSONArray alerted = s.optJSONArray("alerted"); if (alerted == null) alerted = new JSONArray();
         if (auto) {
             for (String p : to) if (sendSms(p, msg)) { sent++; if (!jsonStrings(alerted).contains(p)) alerted.put(p); }
+            if (extraMsg != null) for (String p : extraTo) if (!to.contains(p) && sendSms(p, extraMsg) && !jsonStrings(alerted).contains(p)) alerted.put(p);
             if (call != null) placeCall(call);
         }
         try { s.put("alerted", alerted); } catch (JSONException ignored) { }
@@ -387,8 +410,50 @@ public final class EscalationEngine {
             notifyPatient(key.hashCode() + 99, "Could not send the family alert", "Allow SMS and phone permission for Gran Care, and check the contacts in Profile.");
             emit("sms_failed", s, null);
         }
-        if (to.isEmpty()) notifyPatient(key.hashCode() + 98, "No family contacts saved", "Add a son, daughter or guardian in Gran Care > Profile.");
+        if (to.isEmpty()) notifyPatient(key.hashCode() + 98, "No family contacts saved", "Add a son, daughter, guardian or clinic in Gran Care > Profile.");
         reschedule();
+    }
+
+    // ------------------------------------------------------------------ "seen" links
+
+    private static String capital(String s) { return s.isEmpty() ? s : Character.toUpperCase(s.charAt(0)) + s.substring(1); }
+
+    /** Link tokens per dose (created by the app in Firestore: alertLinks/{token}). */
+    public synchronized void setLinks(JSONObject links, String base) {
+        put("links", links); prefs.edit().putString("seenBase", base == null ? "" : base).apply();
+    }
+    private String token(String key) { return obj("links").optString(key); }
+    private String seenLink(String key) {
+        String t = token(key), base = prefs.getString("seenBase", "");
+        return t.isEmpty() || base == null || base.isEmpty() ? "" : base + "#" + t;
+    }
+
+    /** Asks Firestore (public, by token) whether the alert link has been opened. Unknown counts as unseen. */
+    private boolean seenOnline(String key) {
+        String t = token(key);
+        JSONObject fb = contacts().optJSONObject("firestore");
+        if (t.isEmpty() || fb == null || fb.optString("projectId").isEmpty()) return false;
+        java.net.HttpURLConnection c = null;
+        try {
+            String host = fb.optString("host").isEmpty() ? "https://firestore.googleapis.com" : "http://" + fb.optString("host");
+            String url = host + "/v1/projects/" + fb.optString("projectId") + "/databases/(default)/documents/alertLinks/" + t
+                + (fb.optString("apiKey").isEmpty() ? "" : "?key=" + fb.optString("apiKey"));
+            c = (java.net.HttpURLConnection) new java.net.URL(url).openConnection();
+            c.setConnectTimeout(5000); c.setReadTimeout(5000);
+            if (c.getResponseCode() != 200) return false;
+            java.io.InputStream in = c.getInputStream();
+            java.io.ByteArrayOutputStream out = new java.io.ByteArrayOutputStream();
+            byte[] buf = new byte[4096]; int n;
+            while ((n = in.read(buf)) > 0) out.write(buf, 0, n);
+            JSONObject doc = new JSONObject(out.toString("UTF-8"));
+            JSONObject fields = doc.optJSONObject("fields");
+            return fields != null && fields.has("seenAt");
+        } catch (Exception e) {
+            Log.w(TAG, "seen check failed; treating the alert as unseen", e);
+            return false;
+        } finally {
+            if (c != null) c.disconnect();
+        }
     }
 
     // ------------------------------------------------------------------ SMS replies
@@ -396,7 +461,7 @@ public final class EscalationEngine {
     /** Incoming SMS: a YES / LATER from a saved contact closes the open alerts. */
     public void onSms(String from, String body) {
         String t = body == null ? "" : body.trim().toUpperCase(Locale.ROOT);
-        String type = t.startsWith("YES") || t.equals("Y") || t.startsWith("OK") ? "yes" : t.startsWith("LATER") ? "later" : null;
+        String type = t.startsWith("YES") || t.equals("Y") || t.startsWith("OK") || t.startsWith("SEEN") ? "seen" : t.startsWith("LATER") ? "later" : null;
         if (type == null) return;
         String name = null;
         for (JSONObject c : children()) if (samePhone(c.optString("phone"), from)) name = c.optString("name");
@@ -507,7 +572,7 @@ public final class EscalationEngine {
 
 
     public int testAlert() {
-        String msg = String.format(Locale.US, "Gran Care test: missed-dose alerts for %s are set up on this phone. If a dose is missed you will get a message here. Reply YES or LATER to answer an alert.", patient());
+        String msg = String.format(Locale.US, "Gran Care test: missed-dose alerts for %s are set up on this phone. If a dose is missed you will get a message here with a link; open it so Gran Care knows you have seen it.", patient());
         int sent = 0;
         for (JSONObject c : children()) if (sendSms(c.optString("phone"), msg)) sent++;
         JSONObject g = guardian(); if (g != null && sendSms(g.optString("phone"), msg)) sent++;
