@@ -4,6 +4,7 @@ rules_version = '2';
 // - users/{uid}: each person reads and writes only their own account record.
 // - invites/{code}: a signed-in person can look up one code (to join a family);
 //   codes cannot be listed, changed or deleted.
+// - alertLinks/{token}: one alert, readable and markable as seen by whoever has the SMS link.
 // - families/{familyId}: readable and writable only by its members. A new member can add
 //   only themselves, as son/daughter ('child') or 'guardian', and needs the invite code to
 //   find the family id. Everything under a family (medicines, doses, alerts, profile)
@@ -27,6 +28,23 @@ service cloud.firestore {
         && request.resource.data.ownerUid == request.auth.uid
         && get(/databases/$(database)/documents/families/$(request.resource.data.familyId)).data.patientUid == request.auth.uid;
       allow list, update, delete: if false;
+    }
+
+    // "Seen" links sent by SMS: /alertLinks/{token}, where the token is a long random code.
+    // Anyone holding the link may read that one alert and mark it seen exactly once;
+    // links cannot be listed, deleted or changed in any other way. Only signed-in family
+    // members can create them (the patient's app creates one per upcoming dose).
+    match /alertLinks/{token} {
+      allow get: if true;
+      allow list, delete: if false;
+      allow create: if signedIn()
+        && token.size() >= 20
+        && request.resource.data.keys().hasOnly(['patientName', 'medName', 'dueAt', 'createdBy', 'createdAt'])
+        && request.resource.data.createdBy == request.auth.uid;
+      allow update: if !('seenAt' in resource.data)
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['seenAt', 'seenVia'])
+        && request.resource.data.seenAt is string
+        && request.resource.data.seenVia in ['link', 'app', 'sms'];
     }
 
     match /families/{familyId} {
