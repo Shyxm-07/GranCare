@@ -12,7 +12,7 @@
   function plugin(name) { return reg ? reg(name) : (Cap.Plugins && Cap.Plugins[name]); }
   var P = plugin('GranCareNative'), App = plugin('App'), TTS = plugin('TextToSpeech');
   var G = function () { return window.__gc; };
-  var lastSchedule = '', lastContacts = '', relayed = {};
+  var lastSchedule = '', lastContacts = '', relayed = {}, lastLang = '', setupNagged = false;
 
   // ---------- layout: scale the 390px design to the phone width ----------
   function scale() { document.documentElement.style.setProperty('--gc-scale', String(Math.min(window.innerWidth / 390, 1.25))); }
@@ -83,8 +83,19 @@
         });
       }
       if (sched !== lastSchedule) { lastSchedule = sched; P.setSchedule({ meds: JSON.parse(sched) }).catch(function (e) { console.warn('setSchedule', e); }); }
+      var lang = g.S.settings.language || 'en-US';
+      if (lang !== lastLang) { lastLang = lang; P.setLanguage({ language: lang }).catch(function () {}); }
+      renderSetup();
       var c = JSON.stringify(contactsFromProfile(isPatient ? (g.S.profile || {}) : {}));
       if (c !== lastContacts) { lastContacts = c; P.setContacts(JSON.parse(c)).catch(function () {}); }
+    },
+    // ---------- alarm setup (Profile > Alarm Setup) ----------
+    setup: null,
+    refreshSetup: function () {
+      return P.alarmSetup().then(function (s) { api.setup = s; renderSetup(); return s; }).catch(function () {});
+    },
+    testAlarm: function () {
+      P.testAlarm({ seconds: 5 }).then(function () { G().toast('The alarm will ring in 5 seconds. Lock the phone to see it on the lock screen.'); }).catch(function () {});
     },
     setContacts: function (p) { lastContacts = JSON.stringify(contactsFromProfile(p)); return P.setContacts(JSON.parse(lastContacts)).catch(function () {}); },
     markTaken: function (d) { P.markTaken({ medId: d.med.id, slot: d.slot.key, day: d.day }).catch(function () {}); },
@@ -97,6 +108,35 @@
     }
   };
   window.__gcNative = api;
+
+  var SETUP_ORDER = ['notifications', 'overlay', 'fullScreen', 'exact', 'battery'];
+  function renderSetup() {
+    var card = document.getElementById('pf-alarm'), acct = window.__gcAccount;
+    if (!card) return;
+    var isPatient = !acct || acct.role === 'patient';
+    card.style.display = isPatient ? '' : 'none';
+    var s = api.setup || {}, missing = 0;
+    SETUP_ORDER.forEach(function (k) {
+      var row = card.querySelector('[data-al-row=' + k + ']'); if (!row) return;
+      var ok = s[k] !== false;
+      if (!ok) missing++;
+      row.querySelector('[data-al-ok]').style.display = ok ? '' : 'none';
+      row.querySelector('[data-al-fix]').style.display = ok ? 'none' : '';
+    });
+    var g = G(); if (g) g.setT('pf-alarm-sum', missing ? 'Allow these so the alarm rings on time and opens by itself, like an alarm clock.' : 'All set. The alarm will ring and open by itself, even with the app closed.');
+  }
+  document.addEventListener('click', function (ev) {
+    var fix = ev.target.closest('[data-al-fix]');
+    if (fix) {
+      var which = fix.getAttribute('data-al-fix');
+      if (which === 'notifications') P.requestPermissions({ permissions: ['notifications'] }).then(api.refreshSetup).catch(function () { P.openAlarmSetting({ which: which }); });
+      else P.openAlarmSetting({ which: which });
+      return;
+    }
+    if (ev.target.closest('#pf-test-alarm')) { api.testAlarm(); return; }
+    // In the app, "Test Voice Alarm" rings the real alarm page.
+    if (ev.target.closest('#pd-voice')) { ev.stopPropagation(); api.testAlarm(); }
+  }, true);
 
   // ---------- permissions ----------
   function ensurePermissions(ask) {
@@ -136,10 +176,16 @@
 
   P.addListener('nativeEvent', function () { importEvents(); });
   P.addListener('doseOpened', function () { var g = G(); if (g) g.go('medication-reminder'); });
-  if (App) App.addListener('resume', function () { importEvents(); ensurePermissions(false); if (G()) G().render(); });
+  if (App) App.addListener('resume', function () { importEvents(); ensurePermissions(false); api.refreshSetup(); if (G()) G().render(); });
 
   function start() {
     importEvents();
+    api.refreshSetup().then(function (s) {
+      var acct = window.__gcAccount, isPatient = !acct || acct.role === 'patient';
+      if (!s || !isPatient || setupNagged) return;
+      var missing = SETUP_ORDER.filter(function (k) { return s[k] === false; });
+      if (missing.length) { setupNagged = true; G().toast('Finish Alarm Setup in Profile so the alarm can ring by itself.', 'warn'); }
+    });
     ensurePermissions(true).catch(function () {});
     P.consumeLaunchDose().then(function (r) { if (r && r.opened && G()) G().go('medication-reminder'); }).catch(function () {});
   }

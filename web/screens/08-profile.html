@@ -14,7 +14,40 @@
       <button type="button" id="pf-logout" class="bg-[#e5e8ef] flex h-[48px] items-center justify-center px-[16px] rounded-[12px] w-full"><T lh="20px" class="fi font-semibold text-[#ba1a1a] text-[16px] whitespace-nowrap">Log Out</T></button>
     </div>
 
-        <div class="bg-white drop-shadow-[0px_1px_1px_rgba(0,0,0,0.05)] flex flex-col gap-[16px] items-start p-[20px] relative rounded-[16px] shrink-0 w-full">
+        <div class="bg-white drop-shadow-[0px_1px_1px_rgba(0,0,0,0.05)] flex flex-col gap-[14px] items-start p-[20px] relative rounded-[16px] shrink-0 w-full" id="pf-alarm" style="display:none">
+      <div class="flex flex-col gap-[4px] items-start w-full">
+        <T lh="28px" class="fi font-semibold text-[#181c21] text-[20px] whitespace-nowrap">Alarm Setup</T>
+        <T lh="20px" class="fi font-normal text-[#3f4850] text-[14px] w-full" id="pf-alarm-sum">Allow these so the alarm rings on time and opens by itself, like an alarm clock.</T>
+      </div>
+      <div class="flex gap-[12px] items-center w-full" data-al-row="notifications">
+          <div class="flex flex-col items-start min-w-0 flex-1"><T lh="20px" class="fi font-semibold text-[#181c21] text-[15px]">Notifications</T><T lh="18px" class="fi font-normal text-[#3f4850] text-[13px] w-full">Shows the alarm and its buttons.</T></div>
+          <span class="fi font-semibold text-[#006a62] text-[14px] shrink-0" data-al-ok style="display:none">✓</span>
+          <button type="button" data-al-fix="notifications" class="bg-[#006191] flex h-[40px] items-center justify-center px-[14px] rounded-[9999px] shrink-0"><T lh="20px" class="fi font-semibold text-white text-[14px] whitespace-nowrap">Allow</T></button>
+        </div>
+      <div class="flex gap-[12px] items-center w-full" data-al-row="overlay">
+          <div class="flex flex-col items-start min-w-0 flex-1"><T lh="20px" class="fi font-semibold text-[#181c21] text-[15px]">Show over other apps</T><T lh="18px" class="fi font-normal text-[#3f4850] text-[13px] w-full">Opens the alarm page on top of whatever is on screen.</T></div>
+          <span class="fi font-semibold text-[#006a62] text-[14px] shrink-0" data-al-ok style="display:none">✓</span>
+          <button type="button" data-al-fix="overlay" class="bg-[#006191] flex h-[40px] items-center justify-center px-[14px] rounded-[9999px] shrink-0"><T lh="20px" class="fi font-semibold text-white text-[14px] whitespace-nowrap">Allow</T></button>
+        </div>
+      <div class="flex gap-[12px] items-center w-full" data-al-row="fullScreen">
+          <div class="flex flex-col items-start min-w-0 flex-1"><T lh="20px" class="fi font-semibold text-[#181c21] text-[15px]">Full-screen alarm</T><T lh="18px" class="fi font-normal text-[#3f4850] text-[13px] w-full">Shows the alarm page on the lock screen.</T></div>
+          <span class="fi font-semibold text-[#006a62] text-[14px] shrink-0" data-al-ok style="display:none">✓</span>
+          <button type="button" data-al-fix="fullScreen" class="bg-[#006191] flex h-[40px] items-center justify-center px-[14px] rounded-[9999px] shrink-0"><T lh="20px" class="fi font-semibold text-white text-[14px] whitespace-nowrap">Allow</T></button>
+        </div>
+      <div class="flex gap-[12px] items-center w-full" data-al-row="exact">
+          <div class="flex flex-col items-start min-w-0 flex-1"><T lh="20px" class="fi font-semibold text-[#181c21] text-[15px]">Exact alarm time</T><T lh="18px" class="fi font-normal text-[#3f4850] text-[13px] w-full">Rings at the exact minute.</T></div>
+          <span class="fi font-semibold text-[#006a62] text-[14px] shrink-0" data-al-ok style="display:none">✓</span>
+          <button type="button" data-al-fix="exact" class="bg-[#006191] flex h-[40px] items-center justify-center px-[14px] rounded-[9999px] shrink-0"><T lh="20px" class="fi font-semibold text-white text-[14px] whitespace-nowrap">Allow</T></button>
+        </div>
+      <div class="flex gap-[12px] items-center w-full" data-al-row="battery">
+          <div class="flex flex-col items-start min-w-0 flex-1"><T lh="20px" class="fi font-semibold text-[#181c21] text-[15px]">No battery limits</T><T lh="18px" class="fi font-normal text-[#3f4850] text-[13px] w-full">Stops Android from delaying the alarm to save battery.</T></div>
+          <span class="fi font-semibold text-[#006a62] text-[14px] shrink-0" data-al-ok style="display:none">✓</span>
+          <button type="button" data-al-fix="battery" class="bg-[#006191] flex h-[40px] items-center justify-center px-[14px] rounded-[9999px] shrink-0"><T lh="20px" class="fi font-semibold text-white text-[14px] whitespace-nowrap">Allow</T></button>
+        </div>
+      <button type="button" id="pf-test-alarm" class="bg-[#e5e8ef] flex h-[48px] items-center justify-center px-[16px] rounded-[12px] w-full"><T lh="20px" class="fi font-semibold text-[#006191] text-[16px] whitespace-nowrap">Test Alarm (rings in 5 seconds)</T></button>
+    </div>
+
+    <div class="bg-white drop-shadow-[0px_1px_1px_rgba(0,0,0,0.05)] flex flex-col gap-[16px] items-start p-[20px] relative rounded-[16px] shrink-0 w-full">
       <T lh="28px" class="fi font-semibold text-[#181c21] text-[20px] whitespace-nowrap">Patient</T>
       <div class="flex flex-col gap-[4px] items-start relative shrink-0 w-full">
           <label for="pf-name"><T lh="20px" class="fi font-semibold text-[#181c21] text-[16px] tracking-[0.16px] whitespace-nowrap">Patient Name</T></label>
