@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex">
+<title>Gran Care Alert</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@700;800&family=Inter:wght@400;600&family=Newsreader:opsz,wght@6..72,700&display=swap">
+<style>
+/* One card, centred: what happened, then the confirmation. */
+:root { --bg: #eef3f8; --card: #ffffff; --ink: #172230; --muted: #566575; --brand: #006191; --ok: #0a7f5a; --okbg: #e3f6ee; --bad: #b42318; --badbg: #fde8e6; color-scheme: light; }
+@media (prefers-color-scheme: dark) { :root { --bg: #0d151d; --card: #182531; --ink: #e5edf5; --muted: #9db0c2; --brand: #5db6ea; --ok: #43c592; --okbg: #12352a; --bad: #ff8a7a; --badbg: #3a1714; color-scheme: dark; } }
+* { box-sizing: border-box; }
+body { margin: 0; min-height: 100vh; background: var(--bg); color: var(--ink); font: 16px/1.5 Inter, 'Segoe UI', system-ui, sans-serif; display: flex; align-items: center; justify-content: center; padding: 24px 16px; }
+main { width: 100%; max-width: 420px; background: var(--card); border-radius: 22px; padding: 26px 22px; box-shadow: 0 12px 30px rgba(10, 40, 70, .12); display: flex; flex-direction: column; gap: 14px; }
+.brand { font: 800 14px 'Plus Jakarta Sans', system-ui, sans-serif; color: var(--brand); letter-spacing: .08em; }
+h1 { font: 800 24px/1.2 'Plus Jakarta Sans', system-ui, sans-serif; margin: 0; text-wrap: balance; }
+.med { font: 700 22px/1.2 Newsreader, Georgia, serif; }
+.muted { color: var(--muted); margin: 0; }
+.box { border-radius: 14px; padding: 12px 14px; }
+.ok { background: var(--okbg); color: var(--ok); font-weight: 600; }
+.bad { background: var(--badbg); color: var(--bad); font-weight: 600; }
+ol { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 6px; }
+</style>
+</head>
+<body>
+<main id="app" aria-live="polite">
+  <div class="brand">GRAN CARE</div>
+  <h1>Opening the alert…</h1>
+</main>
+<script src="../firebase-config.js"></script>
+<script>
+(function () {
+  'use strict';
+  var app = document.getElementById('app');
+  var cfg = window.GC_FIREBASE_CONFIG || {};
+  var token = (location.hash || '').replace(/^#/, '').trim();
+  var host = cfg.firestoreHost ? 'http://' + cfg.firestoreHost : 'https://firestore.googleapis.com';
+  var url = host + '/v1/projects/' + encodeURIComponent(cfg.projectId || '') + '/databases/(default)/documents/alertLinks/' + encodeURIComponent(token);
+  var key = cfg.apiKey ? '?key=' + encodeURIComponent(cfg.apiKey) : '?';
+
+  function esc(s) { return String(s || '').replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+  function field(doc, name) { var f = doc.fields && doc.fields[name]; return f ? (f.stringValue || f.timestampValue || '') : ''; }
+  function time(iso) { try { return new Date(iso).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }); } catch (e) { return ''; } }
+  function show(html) { app.innerHTML = '<div class="brand">GRAN CARE</div>' + html; }
+
+  if (!token || token.length < 20 || !cfg.projectId) {
+    show('<h1>This link is not complete</h1><p class="muted">Open the link exactly as it arrived in the Gran Care text message.</p>');
+    return;
+  }
+
+  fetch(url + key).then(function (r) {
+    if (r.status === 404) throw new Error('missing');
+    if (!r.ok) throw new Error('http');
+    return r.json();
+  }).then(function (doc) {
+    var who = field(doc, 'patientName') || 'Your parent', med = field(doc, 'medName') || 'their medicine', due = field(doc, 'dueAt');
+    var already = field(doc, 'seenAt');
+    var head = '<h1>' + esc(who) + ' has not taken a dose</h1><div class="med">' + esc(med) + '</div>' + (due ? '<p class="muted">Due at ' + esc(time(due)) + '</p>' : '');
+    if (already) {
+      show(head + '<div class="box ok">✓ Already marked as seen at ' + esc(time(already)) + '. No emergency alert will be sent.</div>' + next(who));
+      return;
+    }
+    var now = new Date().toISOString();
+    var body = { fields: { seenAt: { stringValue: now }, seenVia: { stringValue: 'link' } } };
+    return fetch(url + key + '&updateMask.fieldPaths=seenAt&updateMask.fieldPaths=seenVia&currentDocument.exists=true', {
+      method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body)
+    }).then(function (r) {
+      if (!r.ok) throw new Error('save');
+      show(head + '<div class="box ok">✓ Thank you. ' + esc(who) + '’s phone now knows you have seen this alert, so the neighbour and clinic will not be alerted.</div>' + next(who));
+    });
+  }).catch(function (e) {
+    if (e && e.message === 'missing') show('<h1>Alert not found</h1><p class="muted">This alert may be older than two days. Check the Gran Care app for the latest status.</p>');
+    else show('<h1>Could not record that you saw this</h1><div class="box bad">Check your internet connection and open the link again. Until it is recorded, the emergency alert will go out after 20 minutes.</div>');
+  });
+
+  function next(who) {
+    return '<p class="muted"><b>What to do now</b></p><ol><li>Call ' + esc(who) + ' to remind them to take it.</li><li>If you cannot reach them, ask someone nearby to check on them.</li></ol>';
+  }
+})();
+</script>
+</body>
+</html>
