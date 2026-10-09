@@ -31,24 +31,29 @@ The same rules run on the phone, the watch and the web version:
    appear on any paired smartwatch, with **TAKEN** and **LATER** buttons.
 2. **LATER** snoozes for **10 minutes**, at most **twice**. An unanswered alarm re-rings every
    10 minutes the same way.
-3. On the **3rd alarm** the sons / daughters saved in **Profile** get a text:
-   *"GRAN CARE ALERT: … has not taken … Reply YES if you are on it, or LATER."*
-4. If nobody replies **YES** or **LATER** within **20 minutes**, it becomes an **emergency**:
-   the phone calls the first son / daughter, and the family and the local guardian get a text.
-5. Still no reply **10 minutes** later: the phone calls the **local guardian** and texts everyone.
+3. After that the **medication time window is exhausted** and the sons / daughters saved in
+   **Profile** get a text with a "seen" link:
+   *"GRAN CARE ALERT: … has not taken … Tap to confirm you have seen this: https://shyxm-07.github.io/GranCare/seen/#…"*
+4. They do not have to reply. **Opening the link**, or opening the alert in their own Gran Care
+   app, marks it **seen** and the patient's phone tells the patient they know.
+5. If it stays **unseen for 20 minutes** it is treated as a **medical emergency**: the children may
+   live far away, so the phone calls the **local guardian / nearby relative** and texts them the
+   home address, texts the **nearby hospital / clinic** from Profile, and tells the children.
 
-Taking the dose, or any YES / LATER reply (by SMS or with the buttons on the caretaker
-dashboard), stops the escalation, and everyone already alerted gets an update.
+Taking the dose stops everything at any point, and everyone already alerted gets an update.
 
-The phone app does all of this by itself: no server, no paid SMS service. Messages and calls
-go out from the patient's phone and SIM, so normal carrier SMS charges apply.
+**Cost: free.** Messages and calls go out from the patient's phone and SIM (normal carrier SMS
+charges, usually covered by the phone plan). The "seen" link uses Firebase's free Spark plan and
+GitHub Pages; no paid server or SMS service is involved. SMS cannot report that a text was
+read, so "seen" means the link or the app was opened. The patient's phone needs to be on with
+signal for the alerts to go out.
 
 ### Permissions the phone app asks for
 
 | Permission | Why |
 |---|---|
 | Notifications, alarms, full-screen | ring at dose time, including on the lock screen |
-| SMS (send / receive) | text the family; read their YES / LATER replies |
+| SMS (send / receive) | text the family; a SEEN / YES reply also counts as seen |
 | Phone | place the emergency alert call |
 | Camera | photograph a prescription (optional) |
 
@@ -61,8 +66,8 @@ When `web/firebase-config.js` holds a Firebase web config, the app starts on **L
 * Sons, daughters and the local guardian choose their role and enter that code. They are added
   to the patient's alert contacts automatically and land on the caretaker dashboard.
 * Everyone in the family sees the same medicines, doses and alerts live. Only the
-  patient's phone rings, and a son's *"Yes, I'm on it"* on his own phone stops the escalation on
-  the patient's phone.
+  patient's phone rings. When a son opens an alert on his own phone it is marked seen, which
+  stops the emergency timer on the patient's phone.
 * *Forgot password?* sends a reset email; *Profile → Log Out* signs out.
 
 ### Firebase setup (one time)
@@ -75,18 +80,24 @@ When `web/firebase-config.js` holds a Firebase web config, the app starts on **L
    refused.
 5. **Project settings → Your apps → Web app**: copy the `firebaseConfig` values into
    [`web/firebase-config.js`](web/firebase-config.js) and push. The next build includes accounts.
+   (Done for project `grancare-10030`.)
+6. Stay on the free **Spark** plan; nothing here needs billing.
+
+The website (demo and the "seen" page) is published free by
+[`.github/workflows/pages.yml`](.github/workflows/pages.yml) to the `gh-pages` branch:
+<https://shyxm-07.github.io/GranCare/>.
 
 With an empty config the app works without accounts and keeps data on the phone.
 
 ## Using the app
 
-1. **Profile** (bottom bar): enter the patient's name, at least one son / daughter, and the local
-   guardian. Tap **Send Test Alert** to check that the messages arrive.
+1. **Profile** (bottom bar): enter the patient's name, at least one son / daughter, the local
+   guardian, the home address and a nearby hospital / clinic. Tap **Send Test Alert** to check that the messages arrive.
 2. **Rx**: add medicines. Type them in, or photograph the prescription after pasting an
    Anthropic API key in Profile (the key stays on the phone).
 3. **Home** shows today's four time slots; **Alarms** is the reminder screen.
 4. The **caretaker dashboard** shows adherence, the activity feed and open alerts with
-   *Yes, I'm on it* / *Later*.
+   *I've seen it*.
 
 The app speaks English, Spanish, French, Hindi and Tamil (Role selection → Interface Language).
 
