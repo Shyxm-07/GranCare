@@ -108,7 +108,7 @@ Google Calendar sign-in setup). Web version: `npm run build:web` → `web/dist/i
 Tests (also run on every push):
 
 * `GC_FIREBASE_DISABLE=1 npm run build:app && python3 web/tests/app_flow.py`: saving, restart
-  persistence, profile, snooze limit and all three escalation levels.
+  persistence, profile, the medication time window and all three escalation levels.
 * `GC_FIREBASE_EMULATOR=1 npm run build:app && npx firebase-tools emulators:exec --only auth,firestore "python3 web/tests/auth_flow.py"`:
   log in, sign up, wrong password / code, invite code, log out and back in, the son's dashboard,
   contacts linking, and the security rules (a stranger cannot read or join a family).
@@ -118,7 +118,7 @@ Tests (also run on every push):
 ```
 web/screens/*.html ──build.js──▶ web/dist-app/index.html ──cap sync──▶ android/app/src/main/assets/public
         app.js          schedule model, dose logging, caretaker metrics
-        escalation.js   snooze limit + 3-level escalation (web version runs the timers itself)
+        escalation.js   medication time window + escalation (web version runs the timers itself)
         profile.js      Profile screen
         standalone.js   on-phone data store (same API as the claude.ai runtime) + prescription reading
         cloud.js        Firebase accounts: log in, sign up, invite codes, family-scoped Firestore data

@@ -262,7 +262,7 @@ public class AlarmActivity extends AppCompatActivity {
             if (s.optInt("snoozes") >= EscalationEngine.MAX_SNOOZES || s.optInt("rings") >= EscalationEngine.ESCALATE_ON_RING || s.optInt("level") > 0) limit = true;
         }
         if (limit) {
-            status.setText(t.get("Snooze limit reached. Your family has been alerted."));
+            status.setText(t.get("Medication time window exhausted. Your family has been alerted."));
             status.setBackground(round(Color.parseColor("#BA1A1A"), 99));
             status.setVisibility(View.VISIBLE);
         } else if (snoozes > 0) {

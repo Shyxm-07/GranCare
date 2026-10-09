@@ -232,7 +232,7 @@
     var esc = window.__gcEsc, max = esc ? esc.RULES.maxSnoozes : 2;
     mins = esc ? esc.RULES.snoozeMinutes : 10;
     if (d.snoozes >= max) {
-      toast('Snooze limit reached. Your son / daughter is being alerted.', 'warn');
+      toast('Medication time window exhausted. Your son / daughter is being alerted.', 'warn');
       if (esc) esc.snoozeLimitReached(d);
       if (window.__gcNative) window.__gcNative.snooze(d);
       return;
@@ -356,7 +356,7 @@
     if (window.__gcProfile) window.__gcProfile.render();
     if (window.__gcNative) window.__gcNative.onRender(list);
     var limit = cur && cur.snoozes >= 2 && cur.status !== 'taken';
-    setT('mr-snooze-label', limit ? 'SNOOZE LIMIT REACHED' : 'LATER (SNOOZE 10M)');
+    setT('mr-snooze-label', limit ? 'TIME WINDOW EXHAUSTED' : 'LATER (SNOOZE 10M)');
     setT('mr-snooze-sub', limit ? 'Your family has been alerted' : 'Postpones alert by 10 mins (up to 2 times), then alerts your family');
     autofit();
   }

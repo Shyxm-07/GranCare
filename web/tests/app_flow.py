@@ -37,7 +37,7 @@ with sync_playwright() as p:
         pg.click('#mr-snooze'); pg.wait_for_timeout(300); pg.evaluate("window.__showScreen('medication-reminder')"); pg.wait_for_timeout(200)
     alerts = pg.evaluate("Object.entries(JSON.parse(localStorage.getItem('gc.db.v1'))).filter(([k])=>k.startsWith('alerts/')).map(([k,v])=>v)")
     check('3rd snooze raises family alert (level 1)', alerts and alerts[0]['level'] == 1, alerts)
-    check('snooze label shows the limit', T('mr-snooze-label') == 'SNOOZE LIMIT REACHED')
+    check('reminder shows the time window is exhausted', T('mr-snooze-label') == 'TIME WINDOW EXHAUSTED')
     # 5) 20 minutes without reply -> emergency; +10 -> guardian
     pg.clock.set_fixed_time(datetime.datetime.fromisoformat(f'{day}T08:22:00+05:30')); pg.evaluate("window.__granCareRender()"); pg.wait_for_timeout(300)
     lv = pg.evaluate("Object.entries(JSON.parse(localStorage.getItem('gc.db.v1'))).filter(([k])=>k.startsWith('alerts/'))[0][1].level")

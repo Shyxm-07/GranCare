@@ -19,7 +19,7 @@ final class AlarmText {
         put("TAKEN", "TOMADA", "PRIS", "ले ली", "எடுத்தேன்");
         put("LATER (10 MIN)", "MÁS TARDE (10 MIN)", "PLUS TARD (10 MIN)", "बाद में (10 मिनट)", "பிறகு (10 நிமி)");
         put("Snoozed {n} of 2 times", "Pospuesta {n} de 2 veces", "Reportée {n} fois sur 2", "{n} / 2 बार टाली गई", "2-இல் {n} முறை தள்ளிவைக்கப்பட்டது");
-        put("Snooze limit reached. Your family has been alerted.", "Límite alcanzado. Se ha avisado a su familia.", "Limite atteinte. Votre famille a été prévenue.", "टालने की सीमा पूरी। परिवार को सूचित किया गया।", "வரம்பு முடிந்தது. குடும்பத்துக்குத் தெரிவிக்கப்பட்டது.");
+        put("Medication time window exhausted. Your family has been alerted.", "Se agotó el tiempo para tomar la medicación. Se ha avisado a su familia.", "Délai de prise du médicament dépassé. Votre famille a été prévenue.", "दवा लेने का समय निकल गया। परिवार को सूचित किया गया।", "மருந்து எடுக்கும் நேரம் முடிந்துவிட்டது. குடும்பத்துக்குத் தெரிவிக்கப்பட்டது.");
         put("Dose recorded", "Dosis registrada", "Dose enregistrée", "खुराक दर्ज", "அளவு பதிவானது");
         put("Reminder in 10 minutes", "Recordatorio en 10 minutos", "Rappel dans 10 minutes", "10 मिनट में फिर याद दिलाएँगे", "10 நிமிடத்தில் மீண்டும் நினைவூட்டல்");
         put("Test alarm", "Alarma de prueba", "Alarme de test", "परीक्षण अलार्म", "சோதனை அலாரம்");

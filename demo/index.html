@@ -453,7 +453,7 @@ select { font: inherit; font-weight: 600; font-size: 14px; padding: 8px 10px; bo
       var limit = S.snoozes >= 2 || S.rings >= 3 || S.level > 0;
       h += '<div class="alarm"><div class="t">' + hm(S.t) + '</div><div class="pill">Medication alarm due now</div><div class="bell">' + bellSvg + '</div>';
       h += '<div class="acard"><div class="k">Time to take</div><div class="n">' + esc(med) + '</div><div class="s">' + DOSE.slot + '</div><div class="ins">' + esc(DOSE.ins) + '</div></div>';
-      if (limit) h += '<div class="astat red">Snooze limit reached. Your son has been alerted.</div>';
+      if (limit) h += '<div class="astat red">Medication time window exhausted. Your son has been alerted.</div>';
       else if (S.snoozes) h += '<div class="astat">Snoozed ' + S.snoozes + ' of 2 times</div>';
       h += '<div class="spacer"></div><button class="abtn" data-act="take">✓ TAKEN</button>';
       if (!limit) h += '<button class="abtn later" data-act="snooze">LATER (10 MIN)</button>';
