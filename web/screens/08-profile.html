@@ -2,7 +2,19 @@
 <div class="flex flex-col items-start pb-[128px] pt-[64px] relative w-[390px] min-h-[844px] bg-[#f7f9ff]" id="pf-root">
   <div class="flex flex-col gap-[20px] items-start px-[16px] pt-[16px] relative shrink-0 w-full">
 
-    <div class="bg-white drop-shadow-[0px_1px_1px_rgba(0,0,0,0.05)] flex flex-col gap-[16px] items-start p-[20px] relative rounded-[16px] shrink-0 w-full">
+    <div class="bg-white drop-shadow-[0px_1px_1px_rgba(0,0,0,0.05)] flex flex-col gap-[16px] items-start p-[20px] relative rounded-[16px] shrink-0 w-full" id="pf-account" style="display:none">
+      <T lh="28px" class="fi font-semibold text-[#181c21] text-[20px] whitespace-nowrap">Account</T>
+      <T lh="20px" class="fi font-normal text-[#3f4850] text-[14px] w-full" id="pf-acct-email"> </T>
+      <div class="bg-[#e8f2fb] flex flex-col gap-[4px] items-start p-[16px] rounded-[12px] w-full" id="pf-invite-box">
+        <T lh="18px" class="fi font-semibold text-[#44627d] text-[12px] tracking-[0.6px] uppercase whitespace-nowrap">Family Invite Code</T>
+        <T lh="40px" class="fi font-bold text-[#006191] text-[32px] tracking-[6px] whitespace-nowrap" id="pf-invite"> </T>
+        <T lh="20px" class="fi font-normal text-[#3f4850] text-[14px] w-full">Sons, daughters and the guardian enter this code when they create their account.</T>
+        <button type="button" id="pf-share" class="bg-[#006191] flex h-[44px] items-center justify-center px-[16px] rounded-[12px] mt-[6px]"><T lh="20px" class="fi font-semibold text-white text-[15px] whitespace-nowrap">Share Code</T></button>
+      </div>
+      <button type="button" id="pf-logout" class="bg-[#e5e8ef] flex h-[48px] items-center justify-center px-[16px] rounded-[12px] w-full"><T lh="20px" class="fi font-semibold text-[#ba1a1a] text-[16px] whitespace-nowrap">Log Out</T></button>
+    </div>
+
+        <div class="bg-white drop-shadow-[0px_1px_1px_rgba(0,0,0,0.05)] flex flex-col gap-[16px] items-start p-[20px] relative rounded-[16px] shrink-0 w-full">
       <T lh="28px" class="fi font-semibold text-[#181c21] text-[20px] whitespace-nowrap">Patient</T>
       <div class="flex flex-col gap-[4px] items-start relative shrink-0 w-full">
           <label for="pf-name"><T lh="20px" class="fi font-semibold text-[#181c21] text-[16px] tracking-[0.16px] whitespace-nowrap">Patient Name</T></label>

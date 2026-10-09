@@ -1,0 +1,59 @@
+<!-- Gran Care · Create account -->
+<div class="flex flex-col items-start relative w-[390px] min-h-[844px] bg-[#f7f9ff]" id="au-signup">
+  <div class="flex flex-col gap-[20px] items-start p-[16px] relative w-full">
+    <div class="flex flex-col gap-[8px] items-center pt-[24px] pb-[8px] w-full">
+      <div class="bg-[#ebeef5] drop-shadow-[0px_1px_1px_rgba(0,0,0,0.05)] flex items-center justify-center p-[4px] rounded-[9999px]">
+        <div class="relative rounded-[9999px] shrink-0 size-[80px] overflow-hidden"><img alt="Gran Care logo" class="absolute left-0 max-w-none size-full top-0" src="{{LOGO}}"></div>
+      </div>
+      <T lh="44px" class="fi font-bold text-[#006191] text-[36px] text-center tracking-[-0.9px] whitespace-nowrap">GRAN CARE</T>
+      <T lh="24px" class="fl italic font-normal text-[#3f4850] text-[16.8px] text-center tracking-[0.168px]">Medication Management &amp; Care Coordination</T>
+    </div>
+    <form class="bg-white drop-shadow-[0px_1px_1px_rgba(0,0,0,0.05)] flex flex-col gap-[16px] items-start p-[20px] relative rounded-[16px] shrink-0 w-full" id="au-signup-form" novalidate>
+      <T lh="28px" class="fi font-semibold text-[#181c21] text-[22px] whitespace-nowrap">Create Account</T>
+      <div class="flex flex-col gap-[8px] w-full" role="radiogroup" aria-label="Who are you?"><label class="bg-[#f0f4fa] flex gap-[12px] items-center p-[14px] rounded-[12px] w-full cursor-pointer border-2 border-transparent has-[:checked]:border-[#006191] has-[:checked]:bg-[#e8f2fb]">
+          <input type="radio" name="au-role" value="patient" class="size-[22px] accent-[#006191] shrink-0" checked>
+          <div class="flex flex-col items-start min-w-0"><T lh="22px" class="fi font-semibold text-[#181c21] text-[16px]">I am the patient</T><T lh="18px" class="fi font-normal text-[#3f4850] text-[13px] w-full">Gets the medication alarms on this phone.</T></div>
+        </label><label class="bg-[#f0f4fa] flex gap-[12px] items-center p-[14px] rounded-[12px] w-full cursor-pointer border-2 border-transparent has-[:checked]:border-[#006191] has-[:checked]:bg-[#e8f2fb]">
+          <input type="radio" name="au-role" value="son" class="size-[22px] accent-[#006191] shrink-0">
+          <div class="flex flex-col items-start min-w-0"><T lh="22px" class="fi font-semibold text-[#181c21] text-[16px]">I am the son</T><T lh="18px" class="fi font-normal text-[#3f4850] text-[13px] w-full">Watches over a parent and gets alerts.</T></div>
+        </label><label class="bg-[#f0f4fa] flex gap-[12px] items-center p-[14px] rounded-[12px] w-full cursor-pointer border-2 border-transparent has-[:checked]:border-[#006191] has-[:checked]:bg-[#e8f2fb]">
+          <input type="radio" name="au-role" value="daughter" class="size-[22px] accent-[#006191] shrink-0">
+          <div class="flex flex-col items-start min-w-0"><T lh="22px" class="fi font-semibold text-[#181c21] text-[16px]">I am the daughter</T><T lh="18px" class="fi font-normal text-[#3f4850] text-[13px] w-full">Watches over a parent and gets alerts.</T></div>
+        </label><label class="bg-[#f0f4fa] flex gap-[12px] items-center p-[14px] rounded-[12px] w-full cursor-pointer border-2 border-transparent has-[:checked]:border-[#006191] has-[:checked]:bg-[#e8f2fb]">
+          <input type="radio" name="au-role" value="guardian" class="size-[22px] accent-[#006191] shrink-0">
+          <div class="flex flex-col items-start min-w-0"><T lh="22px" class="fi font-semibold text-[#181c21] text-[16px]">I am a local guardian</T><T lh="18px" class="fi font-normal text-[#3f4850] text-[13px] w-full">A neighbour or relative nearby.</T></div>
+        </label></div>
+      <div class="flex flex-col gap-[4px] items-start relative shrink-0 w-full">
+        <label for="su-name"><T lh="20px" class="fi font-semibold text-[#181c21] text-[16px] tracking-[0.16px] whitespace-nowrap">Full Name</T></label>
+        <div class="bg-[#f0f4fa] flex h-[56px] items-center px-[16px] relative rounded-[12px] shrink-0 w-full"><input id="su-name" type="text" autocomplete="name" placeholder="e.g. Lakshmi Raman" class="fi font-normal text-[18px] leading-[normal] w-full min-w-0 p-0 m-0 border-0 bg-transparent outline-none text-[#181c21] placeholder:text-[#707881]" required></div>
+      </div>
+      <div class="flex flex-col gap-[4px] items-start relative shrink-0 w-full">
+        <label for="su-phone"><T lh="20px" class="fi font-semibold text-[#181c21] text-[16px] tracking-[0.16px] whitespace-nowrap">Phone</T></label>
+        <div class="bg-[#f0f4fa] flex h-[56px] items-center px-[16px] relative rounded-[12px] shrink-0 w-full"><input id="su-phone" type="tel" autocomplete="tel" placeholder="e.g. +91 98765 43210" class="fi font-normal text-[18px] leading-[normal] w-full min-w-0 p-0 m-0 border-0 bg-transparent outline-none text-[#181c21] placeholder:text-[#707881]"></div>
+      </div>
+      <div class="flex flex-col gap-[4px] items-start relative shrink-0 w-full">
+        <label for="su-email"><T lh="20px" class="fi font-semibold text-[#181c21] text-[16px] tracking-[0.16px] whitespace-nowrap">Email</T></label>
+        <div class="bg-[#f0f4fa] flex h-[56px] items-center px-[16px] relative rounded-[12px] shrink-0 w-full"><input id="su-email" type="email" autocomplete="email" placeholder="you@example.com" class="fi font-normal text-[18px] leading-[normal] w-full min-w-0 p-0 m-0 border-0 bg-transparent outline-none text-[#181c21] placeholder:text-[#707881]" inputmode="email" required></div>
+      </div>
+      <div class="flex flex-col gap-[4px] items-start relative shrink-0 w-full">
+        <label for="su-pass"><T lh="20px" class="fi font-semibold text-[#181c21] text-[16px] tracking-[0.16px] whitespace-nowrap">Password</T></label>
+        <div class="bg-[#f0f4fa] flex h-[56px] items-center px-[16px] relative rounded-[12px] shrink-0 w-full"><input id="su-pass" type="password" autocomplete="new-password" placeholder="At least 6 characters" class="fi font-normal text-[18px] leading-[normal] w-full min-w-0 p-0 m-0 border-0 bg-transparent outline-none text-[#181c21] placeholder:text-[#707881]" required></div>
+      </div>
+      <div class="flex flex-col gap-[4px] items-start relative shrink-0 w-full">
+        <label for="su-pass2"><T lh="20px" class="fi font-semibold text-[#181c21] text-[16px] tracking-[0.16px] whitespace-nowrap">Confirm Password</T></label>
+        <div class="bg-[#f0f4fa] flex h-[56px] items-center px-[16px] relative rounded-[12px] shrink-0 w-full"><input id="su-pass2" type="password" autocomplete="new-password" placeholder="Type it again" class="fi font-normal text-[18px] leading-[normal] w-full min-w-0 p-0 m-0 border-0 bg-transparent outline-none text-[#181c21] placeholder:text-[#707881]" required></div>
+      </div>
+      <div class="flex flex-col gap-[4px] items-start w-full" id="su-code-wrap" style="display:none">
+        <label for="su-code"><T lh="20px" class="fi font-semibold text-[#181c21] text-[16px] tracking-[0.16px] whitespace-nowrap">Family Invite Code</T></label>
+        <div class="bg-[#f0f4fa] flex h-[56px] items-center px-[16px] relative rounded-[12px] shrink-0 w-full"><input id="su-code" type="text" autocomplete="off" autocapitalize="characters" maxlength="8" placeholder="e.g. 7KQ2MX" class="fi font-normal text-[18px] leading-[normal] w-full min-w-0 p-0 m-0 border-0 bg-transparent outline-none text-[#181c21] placeholder:text-[#707881] uppercase placeholder:normal-case tracking-[2px]"></div>
+        <T lh="18px" class="fi font-normal text-[#3f4850] text-[13px] w-full">The patient finds this code in Gran Care › Profile.</T>
+      </div>
+      <T lh="20px" class="fi font-semibold text-[#ba1a1a] text-[14px] w-full" id="au-signup-err"> </T>
+      <button type="submit" class="bg-[#006191] drop-shadow-[0px_2px_3px_rgba(0,97,145,0.25)] flex h-[60px] items-center justify-center px-[24px] relative rounded-[16px] shrink-0 w-full" id="au-signup-btn"><T lh="24px" class="fi font-bold text-[18px] text-white whitespace-nowrap" id="au-signup-label">Create Account</T></button>
+    </form>
+    <div class="flex flex-col gap-[8px] items-center w-full pb-[32px]">
+      <T lh="20px" class="fi font-normal text-[#3f4850] text-[14px] text-center">Already have an account?</T>
+      <button type="button" data-go="login" class="bg-[#e5e8ef] flex h-[52px] items-center justify-center px-[16px] rounded-[16px] w-full"><T lh="20px" class="fi font-semibold text-[#006191] text-[16px] text-center">Log In</T></button>
+    </div>
+  </div>
+</div>

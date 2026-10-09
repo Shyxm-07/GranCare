@@ -33,3 +33,4 @@ button:focus-visible,[role="button"]:focus-visible,[role="switch"]:focus-visible
 .gc-ellipsis p{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%}
 .gct.whitespace-nowrap>p{overflow:hidden;text-overflow:ellipsis}
 #sa-sync{max-width:64px!important}
+.gc-auth-pending .viewer-stage{visibility:hidden}
