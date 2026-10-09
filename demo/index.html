@@ -1,0 +1,574 @@
+<title>Gran Care Alert Demo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&family=Inter:wght@400;500;600;700&family=Newsreader:opsz,wght@6..72,700&display=swap">
+<style>
+/* Layout: control bar on top; a stage of three phones (patient + watch, son, guardian) beside a live event timeline; phones stack on narrow screens. */
+:root {
+  --bg: #e9eff5; --stage: #f6f9fc; --surface: #ffffff; --ink: #172230; --muted: #566575; --line: #d5dee8;
+  --brand: #006191; --brand-ink: #ffffff; --ok: #0a7f5a; --warn: #b45309; --danger: #b42318; --chip: #e2ebf3;
+  --display: 'Plus Jakarta Sans', 'Segoe UI', system-ui, sans-serif;
+  --body: 'Inter', 'Segoe UI', system-ui, sans-serif;
+  --serif: 'Newsreader', Georgia, 'Times New Roman', serif;
+  --radius: 14px;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #0d151d; --stage: #121c26; --surface: #182531; --ink: #e5edf5; --muted: #9db0c2; --line: #263646;
+  --brand: #5db6ea; --brand-ink: #062236; --ok: #43c592; --warn: #f2b05c; --danger: #ff8a7a; --chip: #213140; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #0d151d; --stage: #121c26; --surface: #182531; --ink: #e5edf5; --muted: #9db0c2; --line: #263646;
+  --brand: #5db6ea; --brand-ink: #062236; --ok: #43c592; --warn: #f2b05c; --danger: #ff8a7a; --chip: #213140; color-scheme: dark }
+
+* { box-sizing: border-box }
+body { background: var(--bg); color: var(--ink); font: 15px/1.5 var(--body); padding: 20px 16px 40px; }
+.wrap { max-width: 1320px; margin: 0 auto; display: flex; flex-direction: column; gap: 18px; }
+h1 { font: 800 clamp(22px, 3vw, 30px)/1.15 var(--display); margin: 0; letter-spacing: -0.02em; text-wrap: balance; }
+.lede { margin: 4px 0 0; color: var(--muted); max-width: 70ch; }
+button { font: inherit; cursor: pointer; }
+button:focus-visible, select:focus-visible { outline: 3px solid var(--brand); outline-offset: 2px; }
+
+/* control bar */
+.bar { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px; display: flex; flex-wrap: wrap; gap: 14px 22px; align-items: center; }
+.clockbox { display: flex; flex-direction: column; min-width: 150px; }
+.clockbox .lbl, .grp .lbl { font: 600 11px/1.2 var(--body); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.simclock { font: 800 30px/1.1 var(--display); font-variant-numeric: tabular-nums; }
+.simnote { font-size: 12px; color: var(--muted); min-height: 18px; }
+.grp { display: flex; flex-direction: column; gap: 6px; }
+.row { display: flex; flex-wrap: wrap; gap: 8px; }
+.btn { border: 1px solid var(--line); background: var(--surface); color: var(--ink); border-radius: 999px; padding: 8px 14px; font-weight: 600; font-size: 14px; }
+.btn:hover { border-color: var(--brand); }
+.btn.primary { background: var(--brand); color: var(--brand-ink); border-color: var(--brand); }
+.btn[aria-pressed="true"] { background: var(--chip); border-color: var(--brand); color: var(--ink); box-shadow: inset 0 0 0 1px var(--brand); }
+select { font: inherit; font-weight: 600; font-size: 14px; padding: 8px 10px; border-radius: 10px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); }
+
+/* stage */
+.main { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 18px; align-items: start; }
+@media (max-width: 1100px) { .main { grid-template-columns: minmax(0, 1fr); } }
+.stage { background: var(--stage); border: 1px solid var(--line); border-radius: var(--radius); padding: 18px; display: flex; flex-wrap: wrap; gap: 22px; justify-content: center; }
+.device { display: flex; flex-direction: column; align-items: center; gap: 10px; }
+.who { text-align: center; }
+.who b { font: 700 15px/1.3 var(--display); display: block; }
+.who span { font-size: 13px; color: var(--muted); }
+
+.phone { width: 270px; height: 560px; max-width: 100%; border-radius: 38px; padding: 10px; background: #0f1418; box-shadow: 0 18px 40px rgba(10, 30, 50, .25), inset 0 0 0 2px #2a3640; position: relative; }
+.screen { width: 100%; height: 100%; border-radius: 29px; overflow: hidden; position: relative; background: #f4f7fb; color: #172230; display: flex; flex-direction: column; }
+.notch { position: absolute; top: 10px; left: 50%; transform: translateX(-50%); width: 84px; height: 20px; background: #0f1418; border-radius: 0 0 14px 14px; z-index: 5; }
+.status { display: flex; justify-content: space-between; padding: 8px 18px 4px; font: 600 12px var(--body); font-variant-numeric: tabular-nums; position: relative; z-index: 4; }
+.phone.buzz { animation: buzz .14s linear infinite; }
+@keyframes buzz { 0%,100% { transform: translateX(0) } 25% { transform: translateX(-2px) rotate(-.4deg) } 75% { transform: translateX(2px) rotate(.4deg) } }
+
+/* patient: lock screen */
+.lock { flex: 1; display: flex; flex-direction: column; align-items: center; padding: 26px 18px 18px; gap: 6px; background: linear-gradient(180deg, #dbeaf7 0%, #f4f7fb 70%); }
+.lock .big { font: 800 54px/1 var(--display); font-variant-numeric: tabular-nums; letter-spacing: -0.03em; }
+.lock .date { color: #43617c; font-weight: 600; }
+.ncard { width: 100%; background: #ffffff; border-radius: 18px; padding: 12px 14px; box-shadow: 0 4px 14px rgba(0, 60, 100, .08); display: flex; flex-direction: column; gap: 2px; }
+.ncard .k { font: 700 11px var(--body); letter-spacing: .07em; text-transform: uppercase; color: #43617c; }
+.ncard .v { font: 700 18px var(--serif); color: #181c21; }
+.ncard .s { font-size: 13px; color: #3f4850; }
+.ncard.ok { background: #e3f6ee; } .ncard.ok .k { color: #0a7f5a; }
+.ncard.bad { background: #fde8e6; } .ncard.bad .k { color: #b42318; }
+.spacer { flex: 1; }
+.appbadge { display: flex; align-items: center; gap: 8px; font: 700 13px var(--display); color: #006191; }
+.appbadge i { width: 22px; height: 22px; border-radius: 7px; background: #006191; display: inline-block; position: relative; }
+.appbadge i::after { content: ""; position: absolute; inset: 6px 9px; background: #9bf2e8; border-radius: 2px; box-shadow: -3px 3px 0 -1px #9bf2e8, 3px 3px 0 -1px #9bf2e8; }
+
+/* patient: alarm page (mirrors the Android AlarmActivity) */
+.alarm { flex: 1; display: flex; flex-direction: column; align-items: center; padding: 14px 14px 16px; gap: 9px; color: #ffffff; background: linear-gradient(180deg, #0b84c9 0%, #0369a1 60%, #035e8f 100%); }
+.alarm .t { font: 800 44px/1 var(--display); font-variant-numeric: tabular-nums; }
+.pill { font: 700 10px var(--body); letter-spacing: .09em; text-transform: uppercase; background: rgba(255, 255, 255, .22); padding: 5px 11px; border-radius: 999px; }
+.bell { width: 64px; height: 64px; border-radius: 50%; background: rgba(255, 255, 255, .18); display: grid; place-items: center; animation: pulse .6s ease-in-out infinite alternate; }
+.bell svg { animation: ring .16s linear infinite alternate; transform-origin: 50% 10%; }
+@keyframes pulse { to { transform: scale(1.1) } }
+@keyframes ring { from { transform: rotate(-14deg) } to { transform: rotate(14deg) } }
+.acard { width: 100%; background: #ffffff; color: #181c21; border-radius: 20px; padding: 12px 14px; display: flex; flex-direction: column; gap: 4px; }
+.acard .k { font: 700 11px var(--body); letter-spacing: .07em; text-transform: uppercase; color: #43617c; }
+.acard .n { font: 700 23px/1.1 var(--serif); }
+.acard .s { font-size: 13px; color: #3f4850; }
+.acard .ins { background: #fef3c7; color: #451a03; border-radius: 10px; padding: 7px 10px; font-size: 13px; margin-top: 4px; }
+.astat { font: 700 12px var(--body); padding: 5px 10px; border-radius: 999px; background: rgba(255, 255, 255, .22); text-align: center; }
+.astat.red { background: #ba1a1a; }
+.astat.green { background: #059669; }
+.abtn { width: 100%; border: 0; border-radius: 18px; font: 800 20px var(--display); padding: 14px; color: #ffffff; background: #059669; box-shadow: 0 6px 14px rgba(0, 0, 0, .18); }
+.abtn.later { background: #f59e0b; color: #451a03; font-size: 16px; padding: 11px; box-shadow: none; }
+.abtn:active { transform: scale(.98); }
+
+/* watch */
+.watch { width: 132px; height: 132px; border-radius: 50%; background: #0f1418; padding: 8px; box-shadow: 0 10px 22px rgba(10, 30, 50, .25), inset 0 0 0 2px #2a3640; }
+.wface { width: 100%; height: 100%; border-radius: 50%; background: #283044; color: #dae2fd; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; text-align: center; padding: 10px; overflow: hidden; }
+.wface .wt { font: 700 22px var(--display); font-variant-numeric: tabular-nums; color: #ffffff; }
+.wface .wn { font: 700 12px/1.15 var(--display); color: #ffffff; }
+.wface .wk { font: 700 8px var(--body); letter-spacing: .08em; color: #9bf2e8; text-transform: uppercase; }
+.wbtns { display: flex; gap: 4px; }
+.wbtns button { border: 0; border-radius: 999px; font: 700 9px var(--body); padding: 4px 7px; }
+.wbtns .y { background: #0d766e; color: #ffffff; } .wbtns .l { background: rgba(218, 226, 253, .2); color: #dae2fd; }
+.watch.buzz { animation: buzz .14s linear infinite; }
+
+/* family: messages */
+.msgs { flex: 1; display: flex; flex-direction: column; background: #f4f7fb; min-height: 0; }
+.mhead { display: flex; align-items: center; gap: 10px; padding: 8px 14px 10px; border-bottom: 1px solid #dfe6ee; background: #ffffff; }
+.av { width: 34px; height: 34px; border-radius: 50%; background: #006191; color: #ffffff; display: grid; place-items: center; font: 800 13px var(--display); flex: none; }
+.mhead b { font: 700 14px var(--display); display: block; }
+.mhead span { font-size: 11px; color: #566575; }
+.thread { flex: 1; overflow-y: auto; padding: 12px 10px; display: flex; flex-direction: column; gap: 8px; min-height: 0; }
+.empty { margin: auto; color: #6b7b8c; font-size: 13px; text-align: center; padding: 0 18px; }
+.bub { max-width: 86%; padding: 8px 11px; border-radius: 16px; font-size: 13px; line-height: 1.4; }
+.bub.in { background: #ffffff; border: 1px solid #e1e8ef; align-self: flex-start; border-bottom-left-radius: 5px; }
+.bub.in.emer { background: #fde8e6; border-color: #f4c1bb; }
+.bub.out { background: #006191; color: #ffffff; align-self: flex-end; border-bottom-right-radius: 5px; }
+.bub.sys { align-self: center; background: transparent; color: #6b7b8c; font-size: 11px; padding: 0; }
+.bub time { display: block; font-size: 10px; opacity: .65; margin-top: 2px; font-variant-numeric: tabular-nums; }
+.reply { display: flex; gap: 8px; padding: 10px; background: #ffffff; border-top: 1px solid #dfe6ee; }
+.reply button { flex: 1; border: 0; border-radius: 999px; padding: 10px; font: 700 14px var(--display); }
+.reply .y { background: #059669; color: #ffffff; } .reply .l { background: #e5e8ef; color: #006191; }
+.reply.off { opacity: .45; pointer-events: none; }
+
+/* family: incoming / active call */
+.call { position: absolute; inset: 0; z-index: 6; display: flex; flex-direction: column; align-items: center; padding: 70px 18px 40px; gap: 6px; color: #ffffff; background: linear-gradient(180deg, #3a0d0d 0%, #1b1f27 70%); }
+.call .cav { width: 84px; height: 84px; border-radius: 50%; background: #ba1a1a; display: grid; place-items: center; font: 800 28px var(--display); margin-bottom: 8px; animation: pulse .7s ease-in-out infinite alternate; }
+.call b { font: 800 20px var(--display); text-align: center; }
+.call .sub { color: #f5c6c0; font-size: 13px; text-align: center; }
+.call .say { margin-top: 14px; background: rgba(255, 255, 255, .1); border-radius: 14px; padding: 10px 12px; font-size: 13px; color: #f2f2f2; text-align: center; }
+.call .btns { margin-top: auto; display: flex; gap: 46px; }
+.call .btns button { width: 62px; height: 62px; border-radius: 50%; border: 0; color: #ffffff; font: 700 11px var(--body); }
+.call .dec { background: #d92d20; } .call .acc { background: #12a150; }
+.call .cap { font-size: 11px; color: #c9d1da; text-align: center; margin-top: 4px; }
+.call.live { background: linear-gradient(180deg, #0b3a2a 0%, #1b1f27 70%); }
+.call.live .cav { background: #12a150; animation: none; }
+
+/* toast inside a phone */
+.ptoast { position: absolute; left: 10px; right: 10px; top: 34px; z-index: 7; background: #172230; color: #ffffff; border-radius: 16px; padding: 10px 12px; font-size: 12.5px; box-shadow: 0 8px 20px rgba(0, 0, 0, .3); animation: drop .3s ease-out; }
+.ptoast b { display: block; font: 700 13px var(--display); }
+@keyframes drop { from { transform: translateY(-20px); opacity: 0 } }
+
+/* timeline */
+.log { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; max-height: 720px; min-width: 0; }
+.log h2 { font: 700 16px var(--display); margin: 0; }
+.rules { margin: 0; padding-left: 18px; color: var(--muted); font-size: 13px; display: flex; flex-direction: column; gap: 3px; }
+.events { list-style: none; margin: 0; padding: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; min-height: 120px; }
+.events li { display: grid; grid-template-columns: 52px 10px minmax(0, 1fr); gap: 8px; align-items: start; font-size: 13.5px; }
+.events time { font: 600 12px var(--body); color: var(--muted); font-variant-numeric: tabular-nums; padding-top: 2px; }
+.events .dot { width: 10px; height: 10px; border-radius: 50%; margin-top: 5px; background: var(--brand); }
+.events .k-ok .dot { background: var(--ok); } .events .k-warn .dot { background: var(--warn); } .events .k-bad .dot { background: var(--danger); }
+.events .k-bad span { color: var(--danger); font-weight: 600; }
+.events li > span { min-width: 0; }
+.foot { font-size: 12.5px; color: var(--muted); }
+
+@media (prefers-reduced-motion: reduce) {
+  .phone.buzz, .watch.buzz, .bell, .bell svg, .call .cav, .ptoast { animation: none !important; }
+}
+</style>
+
+<div class="wrap">
+  <header>
+    <h1>Gran Care missed-dose alerts</h1>
+    <p class="lede">A live simulation of the patient's alarm and the family alerts. The clock runs fast so the whole sequence plays in about a minute. Tap the buttons on any phone, or pick a scenario and watch it play out.</p>
+  </header>
+
+  <section class="bar" aria-label="Demo controls">
+    <div class="clockbox">
+      <span class="lbl">Demo clock</span>
+      <span class="simclock" id="simclock">7:59:50 AM</span>
+      <span class="simnote" id="simnote">Morning dose at 8:00 AM</span>
+    </div>
+    <div class="grp">
+      <span class="lbl">Scenario</span>
+      <div class="row" role="group" aria-label="Scenario">
+        <button class="btn" data-scn="manual" aria-pressed="true">You control it</button>
+        <button class="btn" data-scn="takes" aria-pressed="false">Patient takes it</button>
+        <button class="btn" data-scn="sonyes" aria-pressed="false">Son replies YES</button>
+        <button class="btn" data-scn="nobody" aria-pressed="false">Nobody responds</button>
+      </div>
+    </div>
+    <div class="grp">
+      <span class="lbl">Controls</span>
+      <div class="row">
+        <button class="btn primary" id="play">Start</button>
+        <button class="btn" id="skip">Skip to next step</button>
+        <button class="btn" id="reset">Reset</button>
+        <button class="btn" id="sound" aria-pressed="true">Sound on</button>
+      </div>
+    </div>
+    <div class="grp">
+      <label class="lbl" for="speed">Speed</label>
+      <select id="speed">
+        <option value="1">Real time</option>
+        <option value="30">30 seconds per second</option>
+        <option value="60">1 minute per second</option>
+        <option value="120" selected>2 minutes per second</option>
+      </select>
+    </div>
+  </section>
+
+  <div class="main">
+    <section class="stage" aria-label="Phones">
+      <div class="device">
+        <div class="phone" id="ph-patient"><div class="screen"><div class="notch"></div><div class="status"><span data-time></span><span>Lakshmi</span></div><div class="body" style="flex:1;display:flex;flex-direction:column;min-height:0" id="pat"></div></div></div>
+        <div class="who"><b>Lakshmi Raman</b><span>Patient · Gran Care app</span></div>
+        <div class="watch" id="watch"><div class="wface" id="wface"></div></div>
+        <div class="who"><span>Lakshmi's smartwatch (mirrors the alarm)</span></div>
+      </div>
+      <div class="device">
+        <div class="phone" id="ph-son"><div class="screen"><div class="notch"></div><div class="status"><span data-time></span><span>Shyam</span></div><div class="body" style="flex:1;display:flex;flex-direction:column;min-height:0" id="son"></div></div></div>
+        <div class="who"><b>Shyam</b><span>Son · alerted first · +91 98765 43210</span></div>
+      </div>
+      <div class="device">
+        <div class="phone" id="ph-grd"><div class="screen"><div class="notch"></div><div class="status"><span data-time></span><span>Ravi</span></div><div class="body" style="flex:1;display:flex;flex-direction:column;min-height:0" id="grd"></div></div></div>
+        <div class="who"><b>Ravi</b><span>Neighbour · local guardian · +91 91234 56789</span></div>
+      </div>
+    </section>
+
+    <aside class="log" aria-label="What happened">
+      <h2>What happens</h2>
+      <ol class="rules">
+        <li>8:00 alarm rings. LATER snoozes 10 min, at most twice.</li>
+        <li>3rd alarm (8:20): Shyam gets a text.</li>
+        <li>No YES / LATER in 20 min (8:40): emergency call to Shyam, text to Ravi.</li>
+        <li>Still nothing in 10 min (8:50): call to Ravi, texts to everyone.</li>
+      </ol>
+      <h2>Timeline</h2>
+      <ol class="events" id="events" aria-live="polite"></ol>
+      <p class="foot">Simulation only: no real messages or calls are sent. In the Android app the same steps run on the patient's phone, using its SIM, even when the app is closed.</p>
+    </aside>
+  </div>
+</div>
+
+<script>
+(function () {
+  'use strict';
+  var MIN = 60000, SEC = 1000;
+  var DOSE = { name: 'Metformin', dose: '500 mg', slot: 'Morning dose', ins: 'Take after breakfast with a glass of water.' };
+  var PATIENT = 'Lakshmi', SON = 'Shyam', GRD = 'Ravi';
+  var BASE = new Date(); BASE.setHours(0, 0, 0, 0);
+  var T0 = BASE.getTime() + 7 * 3600 * SEC + 59 * MIN + 50 * SEC;   // 7:59:50
+  var DOSE_AT = BASE.getTime() + 8 * 3600 * SEC;                      // 8:00
+
+  var S, playing = false, scenario = 'manual', speed = 120, last = 0, sound = true;
+
+  function fresh() {
+    return {
+      t: T0, rings: 0, snoozes: 0, ringing: false, ringStart: 0, nextRing: DOSE_AT,
+      taken: false, takenAt: 0, level: 0, levelAt: 0, resolved: null, alerted: [],
+      son: { msgs: [], call: null }, grd: { msgs: [], call: null }, pToast: null, wNote: null,
+      events: [], script: {}
+    };
+  }
+
+  // ---------- helpers ----------
+  function fmt(t, secs) {
+    var d = new Date(t), h = d.getHours(), m = d.getMinutes(), s = d.getSeconds(), ap = h >= 12 ? 'PM' : 'AM';
+    h = h % 12 || 12;
+    return h + ':' + (m < 10 ? '0' : '') + m + (secs ? ':' + (s < 10 ? '0' : '') + s : '') + ' ' + ap;
+  }
+  function hm(t) { var d = new Date(t), h = d.getHours() % 12 || 12, m = d.getMinutes(); return h + ':' + (m < 10 ? '0' : '') + m; }
+  function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+  function log(text, kind) { S.events.push({ t: S.t, text: text, kind: kind || '' }); }
+  function sms(to, text, emer) { var p = to === 'son' ? S.son : S.grd; p.msgs.push({ dir: 'in', text: text, t: S.t, emer: !!emer }); if (S.alerted.indexOf(to) < 0) S.alerted.push(to); beep('sms'); }
+  function toastPatient(title, text) { S.pToast = { title: title, text: text, until: performance.now() + 4500 }; }
+  var med = DOSE.name + ' ' + DOSE.dose;
+
+  // ---------- the rules (same as the Android EscalationEngine) ----------
+  function ring() {
+    S.rings++; S.ringing = true; S.ringStart = S.t; S.ringReal = performance.now();
+    S.nextRing = S.rings >= 3 ? 0 : S.t + 10 * MIN;      // unanswered alarms re-ring in 10 min
+    log(S.rings === 1 ? 'Alarm rings on Lakshmi’s phone and watch.' : 'Alarm rings again (' + ordinal(S.rings) + ' time).', '');
+    if (S.rings === 1) speak('It is time to take ' + DOSE.name + ' ' + DOSE.dose + '.');
+    if (S.rings >= 3 && S.level === 0 && !S.resolved) escalate(1);
+  }
+  function ordinal(n) { return n === 2 ? '2nd' : n === 3 ? '3rd' : n + 'th'; }
+  function snooze() {
+    if (!S.ringing && !S.nextRing) return;
+    if (S.snoozes >= 2 || S.rings >= 3) { if (S.level === 0) escalate(1); return; }
+    S.snoozes++; S.ringing = false; S.nextRing = S.t + 10 * MIN;
+    log('Lakshmi taps LATER (' + S.snoozes + ' of 2). Next alarm at ' + fmt(S.nextRing) + '.', 'warn');
+  }
+  function take() {
+    if (S.taken) return;
+    S.taken = true; S.takenAt = S.t; S.ringing = false; S.nextRing = 0;
+    log('Lakshmi taps TAKEN. Dose recorded.', 'ok');
+    if (S.level >= 1 && !S.resolved) {
+      S.resolved = 'taken';
+      var t = 'Gran Care update: ' + PATIENT + ' has now taken ' + med + '. Thank you.';
+      S.alerted.forEach(function (who) { sms(who, t); });
+      log('Everyone alerted gets an update: dose taken.', 'ok');
+    }
+    S.son.call = endCall(S.son.call); S.grd.call = endCall(S.grd.call);
+  }
+  function escalate(level) {
+    if (S.level >= level || S.taken || S.resolved) return;
+    S.level = level; S.levelAt = S.t;
+    if (level === 1) {
+      sms('son', 'GRAN CARE ALERT: ' + PATIENT + ' has not taken ' + med + ' (due 8:00 AM). The alarm was snoozed twice. Please check on her. Reply YES if you are on it, or LATER.');
+      toastPatient('Your son has been alerted', 'Shyam got a message about your ' + DOSE.name + '.');
+      log('3rd alarm: text sent to Shyam (son).', 'warn');
+    } else if (level === 2) {
+      sms('son', 'GRAN CARE EMERGENCY: ' + PATIENT + ' still has not taken ' + med + ' and nobody replied for 20 minutes. Please check on her now. Reply YES when you are on it.', true);
+      sms('grd', 'GRAN CARE EMERGENCY: ' + PATIENT + ' still has not taken ' + med + ' and nobody replied for 20 minutes. Please check on her now. Reply YES when you are on it.', true);
+      S.son.call = { state: 'ringing', since: performance.now(), from: PATIENT + '’s phone', level: 2 };
+      toastPatient('Emergency', 'Your family is being called.');
+      log('No reply in 20 min: EMERGENCY. Alert call to Shyam, text to Ravi.', 'bad');
+    } else {
+      var t = 'GRAN CARE URGENT: Nobody has responded for 30 minutes about ' + PATIENT + ' (' + med + ' not taken). Ravi is being called. Reply YES once someone is with her.';
+      sms('son', t, true); sms('grd', t, true);
+      S.grd.call = { state: 'ringing', since: performance.now(), from: PATIENT + '’s phone', level: 3 };
+      toastPatient('Emergency', 'Your local guardian is being called.');
+      log('Still no reply after 10 min: alert call to Ravi (guardian), texts to everyone.', 'bad');
+    }
+  }
+  function reply(who, type) {
+    var p = who === 'son' ? S.son : S.grd, name = who === 'son' ? SON : GRD;
+    if (S.level < 1 || S.resolved || S.taken) return;
+    p.msgs.push({ dir: 'out', text: type === 'yes' ? 'YES' : 'LATER', t: S.t });
+    S.resolved = 'ack';
+    S.son.call = endCall(S.son.call); S.grd.call = endCall(S.grd.call);
+    var other = who === 'son' ? 'grd' : 'son';
+    if (S.alerted.indexOf(other) >= 0) {
+      sms(other, type === 'yes' ? 'Gran Care: ' + name + ' replied YES and is checking on ' + PATIENT + '.'
+                                : 'Gran Care: ' + name + ' replied LATER about ' + PATIENT + '’s ' + DOSE.name + '. The alarm will ring again.');
+    }
+    if (type === 'yes') {
+      toastPatient(name + ' is on the way to help', 'Your family received the alert about ' + DOSE.name + '.');
+      log(name + ' replies YES. Alerts stop; others are told.', 'ok');
+    } else {
+      S.rings = 2; S.nextRing = S.t + 10 * MIN; S.ringing = false;
+      toastPatient(name + ' will check soon', 'Your alarm will ring once more in 10 minutes.');
+      log(name + ' replies LATER. Alerts stop; one more alarm at ' + fmt(S.nextRing) + '.', 'ok');
+    }
+  }
+  function endCall(c) { return c && c.state !== 'ended' ? null : c; }
+  function answer(who) {
+    var p = who === 'son' ? S.son : S.grd; if (!p.call) return;
+    p.call.state = 'live'; p.call.since = performance.now();
+    log((who === 'son' ? SON : GRD) + ' answers the alert call from ' + PATIENT + '’s phone.', '');
+  }
+  function decline(who) {
+    var p = who === 'son' ? S.son : S.grd; if (!p.call) return;
+    var was = p.call.state;
+    p.msgs.push({ dir: 'sys', text: (was === 'live' ? 'Call ended' : 'Missed call from ' + PATIENT + '’s phone') + ' · ' + hm(S.t), t: S.t });
+    p.call = null;
+  }
+
+  // ---------- time ----------
+  function due() {
+    // next simulated moment at which something happens (for "Skip to next step")
+    var c = [];
+    if (!S.taken && !S.ringing && S.nextRing && S.rings < 3) c.push(S.nextRing);
+    if (S.ringing) c.push(S.ringStart + 5 * MIN);
+    if (S.level === 1 && !S.resolved && !S.taken) c.push(S.levelAt + 20 * MIN);
+    if (S.level === 2 && !S.resolved && !S.taken) c.push(S.levelAt + 10 * MIN);
+    c = c.filter(function (x) { return x > S.t; });
+    return c.length ? Math.min.apply(null, c) : 0;
+  }
+  function step(now) {
+    // patient alarm
+    if (!S.taken && !S.ringing && S.nextRing && S.rings < 3 && S.t >= S.nextRing) ring();
+    if (S.ringing && S.t >= S.ringStart + 5 * MIN) {
+      S.ringing = false;
+      log('No answer for 5 minutes. The alarm stops' + (S.nextRing ? ' and rings again at ' + fmt(S.nextRing) + '.' : '.'), 'warn');
+    }
+    if (!S.taken && !S.resolved) {
+      if (S.level === 1 && S.t >= S.levelAt + 20 * MIN) escalate(2);
+      else if (S.level === 2 && S.t >= S.levelAt + 10 * MIN) escalate(3);
+    }
+    // calls ring for 30 real seconds, then become missed calls
+    ['son', 'grd'].forEach(function (w) {
+      var p = S[w];
+      if (p.call && p.call.state === 'ringing' && now - p.call.since > 30 * SEC) {
+        p.msgs.push({ dir: 'sys', text: 'Missed call from ' + PATIENT + '’s phone · ' + hm(S.t), t: S.t });
+        p.call = null;
+      }
+    });
+    runScript(now);
+  }
+  function waitingForHuman() {
+    var calling = (S.son.call && S.son.call.state === 'ringing') || (S.grd.call && S.grd.call.state === 'ringing');
+    if (scenario === 'manual') return S.ringing || calling;
+    // scenarios: let each alarm ring visibly for a few seconds before time speeds up again
+    return S.ringing && performance.now() - S.ringReal < 4500;
+  }
+  function frame(now) {
+    if (playing) {
+      var dt = Math.min(now - (last || now), 250);
+      var sp = waitingForHuman() ? 1 : speed;   // slow down while someone has to answer
+      S.t += dt * sp;
+      step(now);
+    }
+    last = now;
+    render(now);
+    sounds(now);
+    requestAnimationFrame(frame);
+  }
+
+  // ---------- scripted scenarios ----------
+  function runScript(now) {
+    var sc = S.script;
+    if (scenario === 'takes') {
+      if (S.ringing && S.rings === 1 && !sc.t1) { sc.t1 = now; }
+      if (sc.t1 && !S.taken && now - sc.t1 > 3500) take();
+    } else if (scenario === 'sonyes') {
+      if (S.ringing && S.rings < 3 && sc['r' + S.rings] === undefined) sc['r' + S.rings] = now;
+      if (S.ringing && S.rings < 3 && now - sc['r' + S.rings] > 2500) snooze();
+      if (S.level === 1 && !sc.y) sc.y = S.t;
+      if (sc.y && !S.resolved && S.t - sc.y > 3 * MIN) reply('son', 'yes');
+    } else if (scenario === 'nobody') {
+      ['son', 'grd'].forEach(function (w) {
+        var c = S[w].call;
+        if (c && c.state === 'ringing' && now - c.since > 3500) { S[w].msgs.push({ dir: 'sys', text: 'Missed call from ' + PATIENT + '’s phone · ' + hm(S.t), t: S.t }); S[w].call = null; }
+      });
+    }
+  }
+
+  // ---------- rendering ----------
+  var bellSvg = '<svg width="30" height="30" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 3a6 6 0 0 0-6 6v3.6L4.3 15.4a.8.8 0 0 0 .7 1.2h14a.8.8 0 0 0 .7-1.2L18 12.6V9a6 6 0 0 0-6-6Z" fill="#ffffff"/><path d="M9.5 18.5a2.5 2.5 0 0 0 5 0" stroke="#ffffff" stroke-width="1.8" stroke-linecap="round"/></svg>';
+
+  function patientHTML(now) {
+    var h = '';
+    if (S.ringing) {
+      var limit = S.snoozes >= 2 || S.rings >= 3 || S.level > 0;
+      h += '<div class="alarm"><div class="t">' + hm(S.t) + '</div><div class="pill">Medication alarm due now</div><div class="bell">' + bellSvg + '</div>';
+      h += '<div class="acard"><div class="k">Time to take</div><div class="n">' + esc(med) + '</div><div class="s">' + DOSE.slot + '</div><div class="ins">' + esc(DOSE.ins) + '</div></div>';
+      if (limit) h += '<div class="astat red">Snooze limit reached. Your family has been alerted.</div>';
+      else if (S.snoozes) h += '<div class="astat">Snoozed ' + S.snoozes + ' of 2 times</div>';
+      h += '<div class="spacer"></div><button class="abtn" data-act="take">✓ TAKEN</button>';
+      if (!limit) h += '<button class="abtn later" data-act="snooze">LATER (10 MIN)</button>';
+      h += '</div>';
+    } else {
+      var d = new Date(S.t);
+      h += '<div class="lock"><div class="big">' + hm(S.t) + '</div><div class="date">' + d.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' }) + '</div><div style="height:14px"></div>';
+      if (S.taken) h += '<div class="ncard ok"><div class="k">Dose taken</div><div class="v">' + esc(med) + '</div><div class="s">Recorded at ' + fmt(S.takenAt) + '</div></div>';
+      else if (S.nextRing && S.rings > 0) h += '<div class="ncard"><div class="k">Snoozed</div><div class="v">' + esc(med) + '</div><div class="s">Next alarm at ' + fmt(S.nextRing) + '</div></div>';
+      else if (S.rings === 0) h += '<div class="ncard"><div class="k">Next dose · 8:00 AM</div><div class="v">' + esc(med) + '</div><div class="s">' + esc(DOSE.ins) + '</div></div>';
+      else h += '<div class="ncard bad"><div class="k">Missed dose</div><div class="v">' + esc(med) + '</div><div class="s">Not taken. Tap to take it now.</div></div>';
+      if (S.level > 0 && !S.taken) h += '<div class="ncard bad"><div class="k">' + (S.resolved === 'ack' ? 'Family responded' : S.level >= 2 ? 'Emergency' : 'Family alerted') + '</div><div class="s">' + (S.resolved === 'ack' ? 'Help is on the way.' : S.level >= 3 ? 'Ravi (guardian) is being called.' : S.level === 2 ? 'Shyam is being called. Ravi was messaged.' : 'Shyam got a message.') + '</div></div>';
+      if (!S.taken && S.rings > 0) h += '<div style="width:100%;margin-top:6px"><button class="abtn" data-act="take">✓ I took it</button></div>';
+      h += '<div class="spacer"></div><div class="appbadge"><i></i>Gran Care</div></div>';
+    }
+    if (S.pToast && now < S.pToast.until) h += '<div class="ptoast"><b>' + esc(S.pToast.title) + '</b>' + esc(S.pToast.text) + '</div>';
+    return h;
+  }
+
+  function famHTML(who) {
+    var p = S[who], name = who === 'son' ? SON : GRD;
+    var h = '<div class="msgs"><div class="mhead"><div class="av">GC</div><div><b>Gran Care</b><span>from Lakshmi’s phone · +91 90000 11111</span></div></div><div class="thread" data-thread="' + who + '">';
+    if (!p.msgs.length) h += '<div class="empty">No alerts. If ' + PATIENT + ' misses a dose, the message arrives here.</div>';
+    p.msgs.forEach(function (m) {
+      if (m.dir === 'sys') h += '<div class="bub sys">' + esc(m.text) + '</div>';
+      else h += '<div class="bub ' + m.dir + (m.emer ? ' emer' : '') + '">' + esc(m.text) + '<time>' + hm(m.t) + '</time></div>';
+    });
+    h += '</div>';
+    var active = S.level >= 1 && !S.resolved && !S.taken && S.alerted.indexOf(who) >= 0;
+    h += '<div class="reply' + (active ? '' : ' off') + '"><button class="y" data-reply="' + who + ':yes">Reply YES</button><button class="l" data-reply="' + who + ':later">LATER</button></div></div>';
+    if (p.call) {
+      var live = p.call.state === 'live';
+      var secs = live ? Math.floor((performance.now() - p.call.since) / 1000) : 0;
+      h += '<div class="call' + (live ? ' live' : '') + '"><div class="cav">L</div><b>' + esc(p.call.from) + '</b><div class="sub">' + (live ? 'Connected · 0:' + (secs < 10 ? '0' : '') + secs : 'Gran Care emergency call · +91 90000 11111') + '</div>';
+      h += '<div class="say">' + (live ? 'You are now on the phone with ' + PATIENT + '. Reply YES afterwards to stop the alerts.' : PATIENT + ' has not taken ' + esc(med) + ' and nobody has replied.') + '</div>';
+      h += '<div class="btns">' + (live ? '<button class="dec" data-call="' + who + ':end">End</button>' : '<button class="dec" data-call="' + who + ':dec">Decline</button><button class="acc" data-call="' + who + ':acc">Answer</button>') + '</div>';
+      h += '<div class="cap">' + (p.call.level === 3 ? 'Guardian call (level 3)' : 'Emergency call (level 2)') + '</div></div>';
+    }
+    return h;
+  }
+
+  function watchHTML() {
+    if (S.ringing) return '<div class="wk">Medicine</div><div class="wn">' + esc(med) + '</div><div class="wbtns"><button class="y" data-act="take">TAKEN</button>' + (S.snoozes < 2 && S.rings < 3 ? '<button class="l" data-act="snooze">LATER</button>' : '') + '</div>';
+    if (S.taken) return '<div class="wt">' + hm(S.t) + '</div><div class="wk">✓ Dose recorded</div>';
+    return '<div class="wt">' + hm(S.t) + '</div><div class="wk">' + (S.level ? 'Family alerted' : 'Next 8:00 AM') + '</div>';
+  }
+
+  var lastSig = {}, lastEvents = -1;
+  function setHTML(id, html) {
+    if (lastSig[id] === html) return;
+    var el = document.getElementById(id);
+    var thread = el.querySelector('.thread'), stick = thread ? thread.scrollTop + thread.clientHeight >= thread.scrollHeight - 30 : true;
+    el.innerHTML = html; lastSig[id] = html;
+    var nt = el.querySelector('.thread'); if (nt && stick) nt.scrollTop = nt.scrollHeight;
+  }
+  function render(now) {
+    document.getElementById('simclock').textContent = fmt(S.t, true);
+    var note = !playing ? (S.t === T0 ? 'Press Start. Morning dose at 8:00 AM.' : 'Paused')
+      : waitingForHuman() ? 'Clock at real speed while someone has to answer'
+      : S.taken || S.resolved || S.level >= 3 && !S.son.call && !S.grd.call ? 'Sequence complete' : 'Running at ' + document.getElementById('speed').selectedOptions[0].text.toLowerCase();
+    document.getElementById('simnote').textContent = note;
+    [].forEach.call(document.querySelectorAll('[data-time]'), function (e) { e.textContent = hm(S.t); });
+    setHTML('pat', patientHTML(now));
+    setHTML('son', famHTML('son'));
+    setHTML('grd', famHTML('grd'));
+    setHTML('wface', watchHTML());
+    document.getElementById('ph-patient').classList.toggle('buzz', S.ringing);
+    document.getElementById('watch').classList.toggle('buzz', S.ringing);
+    document.getElementById('ph-son').classList.toggle('buzz', !!(S.son.call && S.son.call.state === 'ringing'));
+    document.getElementById('ph-grd').classList.toggle('buzz', !!(S.grd.call && S.grd.call.state === 'ringing'));
+    if (S.events.length !== lastEvents) {
+      lastEvents = S.events.length;
+      var ul = document.getElementById('events');
+      ul.innerHTML = S.events.length ? S.events.map(function (e) {
+        return '<li class="k-' + (e.kind || 'info') + '"><time>' + hm(e.t) + '</time><i class="dot"></i><span>' + esc(e.text) + '</span></li>';
+      }).join('') : '<li class="k-info"><time>' + hm(T0) + '</time><i class="dot"></i><span>Waiting for the 8:00 AM dose.</span></li>';
+      ul.scrollTop = ul.scrollHeight;
+    }
+    document.getElementById('play').textContent = playing ? 'Pause' : (S.t === T0 ? 'Start' : 'Resume');
+  }
+
+  // ---------- sound (Web Audio, starts after the first tap) ----------
+  var ac = null, nextBeep = 0;
+  function audio() { if (!ac) { try { ac = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { ac = null; } } if (ac && ac.state === 'suspended') ac.resume(); return ac; }
+  function tone(freq, start, dur, type, vol) {
+    var a = audio(); if (!a || !sound) return;
+    var o = a.createOscillator(), g = a.createGain();
+    o.type = type || 'square'; o.frequency.value = freq;
+    g.gain.setValueAtTime(0.0001, start); g.gain.exponentialRampToValueAtTime(vol || 0.08, start + 0.01); g.gain.exponentialRampToValueAtTime(0.0001, start + dur);
+    o.connect(g); g.connect(a.destination); o.start(start); o.stop(start + dur + 0.02);
+  }
+  function beep(kind) {
+    var a = ac; if (!a || !sound) return; var t = a.currentTime + 0.01;
+    if (kind === 'sms') { tone(1320, t, 0.12, 'sine', 0.12); tone(1760, t + 0.13, 0.16, 'sine', 0.12); }
+  }
+  function sounds(now) {
+    if (!ac || !sound || now < nextBeep) return;
+    var t = ac.currentTime + 0.01;
+    if (S.ringing && playing) { for (var i = 0; i < 4; i++) tone(i % 2 ? 1046 : 880, t + i * 0.16, 0.12, 'square', 0.06); nextBeep = now + 1100; }
+    else if (playing && ((S.son.call && S.son.call.state === 'ringing') || (S.grd.call && S.grd.call.state === 'ringing'))) { tone(440, t, 0.4, 'sine', 0.1); tone(480, t, 0.4, 'sine', 0.06); tone(440, t + 0.5, 0.4, 'sine', 0.1); nextBeep = now + 2400; }
+  }
+  function speak(text) {
+    if (!sound || !window.speechSynthesis) return;
+    try { var u = new SpeechSynthesisUtterance(text); u.rate = 0.95; window.speechSynthesis.cancel(); window.speechSynthesis.speak(u); } catch (e) {}
+  }
+
+  // ---------- controls ----------
+  function reset() { S = fresh(); playing = false; last = 0; lastSig = {}; lastEvents = -1; try { window.speechSynthesis && window.speechSynthesis.cancel(); } catch (e) {} }
+  document.getElementById('play').addEventListener('click', function () { audio(); playing = !playing; });
+  document.getElementById('reset').addEventListener('click', reset);
+  document.getElementById('skip').addEventListener('click', function () {
+    audio();
+    var n = due();
+    if (n) { S.t = n; step(performance.now()); }
+    else if (!S.ringing && S.rings === 0) { S.t = DOSE_AT; step(performance.now()); }
+    playing = true;
+  });
+  document.getElementById('speed').addEventListener('change', function (e) { speed = Number(e.target.value) || 120; });
+  document.getElementById('sound').addEventListener('click', function (e) {
+    sound = !sound; e.currentTarget.setAttribute('aria-pressed', String(sound)); e.currentTarget.textContent = sound ? 'Sound on' : 'Sound off';
+    if (!sound) { try { window.speechSynthesis && window.speechSynthesis.cancel(); } catch (x) {} } else audio();
+  });
+  [].forEach.call(document.querySelectorAll('[data-scn]'), function (b) {
+    b.addEventListener('click', function () {
+      scenario = b.getAttribute('data-scn');
+      [].forEach.call(document.querySelectorAll('[data-scn]'), function (x) { x.setAttribute('aria-pressed', String(x === b)); });
+      reset(); audio(); playing = scenario !== 'manual';
+    });
+  });
+  document.addEventListener('click', function (e) {
+    var t = e.target.closest('[data-act],[data-reply],[data-call]'); if (!t) return;
+    audio();
+    if (t.dataset.act === 'take') take();
+    else if (t.dataset.act === 'snooze') snooze();
+    else if (t.dataset.reply) { var r = t.dataset.reply.split(':'); reply(r[0], r[1]); }
+    else if (t.dataset.call) {
+      var c = t.dataset.call.split(':');
+      if (c[1] === 'acc') answer(c[0]); else decline(c[0]);
+    }
+  });
+
+  reset();
+  requestAnimationFrame(frame);
+})();
+</script>
