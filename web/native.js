@@ -12,7 +12,7 @@
   function plugin(name) { return reg ? reg(name) : (Cap.Plugins && Cap.Plugins[name]); }
   var P = plugin('GranCareNative'), App = plugin('App'), TTS = plugin('TextToSpeech');
   var G = function () { return window.__gc; };
-  var lastSchedule = '', lastContacts = '';
+  var lastSchedule = '', lastContacts = '', relayed = {};
 
   // ---------- layout: scale the 390px design to the phone width ----------
   function scale() { document.documentElement.style.setProperty('--gc-scale', String(Math.min(window.innerWidth / 390, 1.25))); }
@@ -70,9 +70,20 @@
     permissionsOk: false,
     onRender: function () {
       var g = G(); if (!g) return;
-      var sched = JSON.stringify(scheduleFromMeds(g.S));
+      var acct = window.__gcAccount;
+      var isPatient = !acct || acct.role === 'patient';
+      // Family members' phones show the caretaker view but never ring for the patient's doses.
+      var sched = JSON.stringify(isPatient ? scheduleFromMeds(g.S) : []);
+      if (isPatient && window.__gcEsc) {
+        window.__gcEsc.all().forEach(function (a) {
+          if (a.resolved === 'ack' && !relayed[a.id] && a.ackBy !== 'device') {
+            relayed[a.id] = 1;
+            P.acknowledge({ medId: a.medId, slot: a.slot, day: a.day, ackType: a.ackType || 'yes' }).catch(function () {});
+          }
+        });
+      }
       if (sched !== lastSchedule) { lastSchedule = sched; P.setSchedule({ meds: JSON.parse(sched) }).catch(function (e) { console.warn('setSchedule', e); }); }
-      var c = JSON.stringify(contactsFromProfile(g.S.profile || {}));
+      var c = JSON.stringify(contactsFromProfile(isPatient ? (g.S.profile || {}) : {}));
       if (c !== lastContacts) { lastContacts = c; P.setContacts(JSON.parse(c)).catch(function () {}); }
     },
     setContacts: function (p) { lastContacts = JSON.stringify(contactsFromProfile(p)); return P.setContacts(JSON.parse(lastContacts)).catch(function () {}); },

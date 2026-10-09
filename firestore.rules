@@ -1,0 +1,59 @@
+rules_version = '2';
+
+// Gran Care security rules.
+// - users/{uid}: each person reads and writes only their own account record.
+// - invites/{code}: a signed-in person can look up one code (to join a family);
+//   codes cannot be listed, changed or deleted.
+// - families/{familyId}: readable and writable only by its members. A new member can add
+//   only themselves, as son/daughter ('child') or 'guardian', and needs the invite code to
+//   find the family id. Everything under a family (medicines, doses, alerts, profile)
+//   follows the same membership check.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() { return request.auth != null; }
+    function isMember(familyId) {
+      return signedIn()
+        && request.auth.uid in get(/databases/$(database)/documents/families/$(familyId)).data.members;
+    }
+
+    match /users/{uid} {
+      allow read, write: if signedIn() && request.auth.uid == uid;
+    }
+
+    match /invites/{code} {
+      allow get: if signedIn();
+      allow create: if signedIn()
+        && request.resource.data.ownerUid == request.auth.uid
+        && get(/databases/$(database)/documents/families/$(request.resource.data.familyId)).data.patientUid == request.auth.uid;
+      allow list, update, delete: if false;
+    }
+
+    match /families/{familyId} {
+      allow create: if signedIn()
+        && request.resource.data.patientUid == request.auth.uid
+        && request.resource.data.members.keys().hasOnly([request.auth.uid])
+        && request.resource.data.members[request.auth.uid] == 'patient';
+
+      allow read: if signedIn() && request.auth.uid in resource.data.members;
+
+      allow update: if signedIn() && (
+        // members may update the family record, but cannot change who the patient is
+        (request.auth.uid in resource.data.members
+          && request.resource.data.patientUid == resource.data.patientUid)
+        ||
+        // joining: add only yourself as son/daughter or guardian
+        (!(request.auth.uid in resource.data.members)
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['members'])
+          && request.resource.data.members.diff(resource.data.members).affectedKeys().hasOnly([request.auth.uid])
+          && request.resource.data.members[request.auth.uid] in ['child', 'guardian'])
+      );
+
+      allow delete: if false;
+
+      match /{document=**} {
+        allow read, write: if isMember(familyId);
+      }
+    }
+  }
+}

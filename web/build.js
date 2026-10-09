@@ -21,6 +21,8 @@ const SCREENS = [
   ['smartwatch-dose-alert', 'Smartwatch Dose Alert', '02-smartwatch-dose-alert.html'],
   ['caretaker-dashboard', 'Caretaker Dashboard', '07-caretaker-dashboard.html'],
   ['profile', 'Profile', '08-profile.html'],
+  ['login', 'Log In', '09-login.html'],
+  ['signup', 'Create Account', '10-signup.html'],
 ];
 
 const TW = JSON.parse(fs.readFileSync('twidths.json', 'utf8'));
@@ -104,6 +106,22 @@ const capCore = () => {
   const p = '../node_modules/@capacitor/core/dist/capacitor.js';
   return fs.existsSync(p) ? js(p) : '';
 };
+// Firebase accounts (app build): SDK + web/firebase-config.js + cloud.js.
+// GC_FIREBASE_EMULATOR=1 points the build at the local emulators (CI tests).
+const firebaseJs = () => {
+  if (process.env.GC_FIREBASE_DISABLE === '1') return ''; // on-phone mode (tests)
+  const emu = process.env.GC_FIREBASE_EMULATOR === '1';
+  const cfgFile = 'firebase-config.js';
+  let cfg = fs.existsSync(cfgFile) ? fs.readFileSync(cfgFile, 'utf8') : '';
+  if (emu) cfg = "window.GC_FIREBASE_EMULATOR=true;window.GC_FIREBASE_CONFIG={apiKey:'demo-key',authDomain:'demo-grancare.firebaseapp.com',projectId:'demo-grancare',appId:'demo'};";
+  if (process.env.GC_FIREBASE_MOCK === '1') { // local UI tests only
+    return js('tests/firebase-mock.js') + '\n' + "window.GC_FIREBASE_CONFIG={apiKey:'mock'};" + '\n' + js('cloud.js');
+  }
+  if (!/apiKey\s*:\s*['"][^'"]+/.test(cfg)) return ''; // no Firebase project yet: on-phone mode
+  const sdk = ['firebase-app-compat.js', 'firebase-auth-compat.js', 'firebase-firestore-compat.js']
+    .map((f) => js('node_modules/firebase/' + f).replace(/<\/script/gi, '<\\/script')).join('\n');
+  return sdk + '\n' + jsAscii(cfg) + '\n' + js('cloud.js');
+};
 const appHead = `<!doctype html><html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#f7f9ff"><title>Gran Care</title>`;
@@ -146,6 +164,7 @@ ${screensHtml}
 ${APP ? '<script>' + capCore() + '</script>' : ''}
 <script>
 ${APP ? js('standalone.js') : ''}
+${APP ? firebaseJs() : ''}
 ${js('i18n.js')}
 ${js('watch.js')}
 ${js('escalation.js')}

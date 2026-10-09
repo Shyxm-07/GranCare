@@ -84,7 +84,7 @@
 
   function ack(type) {
     var g = G(), a = active()[0]; if (!a) return;
-    var who = (g.S.uid || '');
+    var who = window.__gcAccount ? window.__gcAccount.name : (g.S.uid || '');
     save(a.id, { resolved: 'ack', ackType: type, ackBy: who, ackAt: new Date().toISOString() });
     g.logEvent({ type: 'ack', ackType: type, medId: a.medId, medName: a.medName, slot: a.slot }).catch(function () {});
     if (native()) native().acknowledge({ medId: a.medId, slot: a.slot, day: a.day, ackType: type });
@@ -105,7 +105,8 @@
     g.setT('ct-alert-text', g.tr(lines[a.level] || lines[1], { slot: slot }));
   }
 
-  window.__gcEsc = { RULES: RULES, subscribe: subscribe, onRender: onRender, snoozeLimitReached: snoozeLimitReached, active: active, key: key,
+  function all() { return Object.keys(A.alerts).map(function (k) { return A.alerts[k]; }); }
+  window.__gcEsc = { RULES: RULES, all: all, subscribe: subscribe, onRender: onRender, snoozeLimitReached: snoozeLimitReached, active: active, key: key,
     init: function () {
       document.addEventListener('click', function (ev) {
         if (ev.target.closest('#ct-ack-yes')) ack('yes');
