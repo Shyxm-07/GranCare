@@ -14,7 +14,7 @@ with sync_playwright() as p:
     pg.goto(URL + '#prescription-ocr'); pg.wait_for_timeout(600)
     T = lambda i: pg.evaluate(f"(document.getElementById('{i}')||{{}}).textContent")
     # 1) add a medication through the verification form
-    pg.fill('#f-name', 'Metformin'); pg.fill('#f-dose', '500 mg'); pg.fill('#f-freq', 'Morning'); pg.fill('#f-days', '30')
+    pg.fill('#f-name', 'Metformin'); pg.fill('#f-dose', '500 mg'); pg.fill('#f-freq', 'Morning / Night'); pg.fill('#f-days', '30')
     pg.click('#ocr-save'); pg.wait_for_timeout(500)
     check('medication saved and shown', 'Metformin' in pg.evaluate("document.querySelector('[data-slot-list=morning]').textContent"))
     # 2) survives an app restart (localStorage)
@@ -25,32 +25,55 @@ with sync_playwright() as p:
     pg.fill('#pf-name', 'Lakshmi Raman')
     pg.fill('#pf-children [data-f=name]', 'Shyam'); pg.fill('#pf-children [data-f=phone]', '+91 98765 43210')
     pg.fill('#pf-g-name', 'Ravi'); pg.fill('#pf-g-phone', '+91 91234 56789')
+    pg.fill('#pf-address', '12 Gandhi St, Adyar'); pg.fill('#pf-c-name', 'Adyar Clinic'); pg.fill('#pf-c-phone', '+91 44 2441 0000')
     pg.click('#pf-save'); pg.wait_for_timeout(400)
     prof = pg.evaluate("JSON.parse(localStorage.getItem('gc.db.v1'))['profile/patient']")
     check('profile saved with contacts', prof and prof['children'][0]['phone'] == '+91 98765 43210' and prof['guardian']['name'] == 'Ravi')
+    check('profile saved with address and clinic', prof.get('address') == '12 Gandhi St, Adyar' and prof.get('clinic', {}).get('phone') == '+91 44 2441 0000', prof)
     pg.reload(); pg.wait_for_timeout(500); pg.evaluate("window.__showScreen('profile')"); pg.wait_for_timeout(300)
     check('profile reloads into the form', pg.input_value('#pf-children [data-f=name]') == 'Shyam')
-    # 4) snooze twice, third attempt escalates
-    pg.clock.set_fixed_time(datetime.datetime.fromisoformat(f'{day}T08:01:00+05:30'))
-    pg.evaluate("window.__showScreen('medication-reminder')"); pg.wait_for_timeout(200)
-    for i in range(3):
-        pg.click('#mr-snooze'); pg.wait_for_timeout(300); pg.evaluate("window.__showScreen('medication-reminder')"); pg.wait_for_timeout(200)
-    alerts = pg.evaluate("Object.entries(JSON.parse(localStorage.getItem('gc.db.v1'))).filter(([k])=>k.startsWith('alerts/')).map(([k,v])=>v)")
-    check('3rd snooze raises family alert (level 1)', alerts and alerts[0]['level'] == 1, alerts)
+    ALERTS = "Object.fromEntries(Object.entries(JSON.parse(localStorage.getItem('gc.db.v1'))).filter(([k])=>k.startsWith('alerts/')).map(([k,v])=>[v.slot,v]))"
+    def at(hhmm):
+        pg.clock.set_fixed_time(datetime.datetime.fromisoformat(f'{day}T{hhmm}:00+05:30')); pg.evaluate("window.__granCareRender()"); pg.wait_for_timeout(300)
+    def snooze3():
+        pg.evaluate("window.__showScreen('medication-reminder')"); pg.wait_for_timeout(200)
+        for i in range(3):
+            pg.click('#mr-snooze'); pg.wait_for_timeout(300); pg.evaluate("window.__showScreen('medication-reminder')"); pg.wait_for_timeout(200)
+    # 4) morning: snooze twice, 3rd attempt -> time window exhausted, son alerted
+    at('08:01'); snooze3()
+    al = pg.evaluate(ALERTS)
+    check('3rd snooze raises family alert (level 1)', al.get('morning', {}).get('level') == 1, al)
     check('reminder shows the time window is exhausted', T('mr-snooze-label') == 'TIME WINDOW EXHAUSTED')
-    # 5) 20 minutes without reply -> emergency; +10 -> guardian
-    pg.clock.set_fixed_time(datetime.datetime.fromisoformat(f'{day}T08:22:00+05:30')); pg.evaluate("window.__granCareRender()"); pg.wait_for_timeout(300)
-    lv = pg.evaluate("Object.entries(JSON.parse(localStorage.getItem('gc.db.v1'))).filter(([k])=>k.startsWith('alerts/'))[0][1].level")
-    check('no reply in 20 min -> emergency (level 2)', lv == 2, lv)
-    pg.clock.set_fixed_time(datetime.datetime.fromisoformat(f'{day}T08:33:00+05:30')); pg.evaluate("window.__granCareRender()"); pg.wait_for_timeout(300)
-    lv = pg.evaluate("Object.entries(JSON.parse(localStorage.getItem('gc.db.v1'))).filter(([k])=>k.startsWith('alerts/'))[0][1].level")
-    check('no reply 10 min later -> guardian (level 3)', lv == 3, lv)
-    # 6) caretaker sees the alert and answers YES
+    # 5) the son sees it within 20 minutes -> no emergency
+    at('08:10'); pg.evaluate("window.__showScreen('caretaker-dashboard')"); pg.wait_for_timeout(300)
+    check('caretaker sees the family alert', 'Family Alert' in T('ct-alert-title'), T('ct-alert-title'))
+    check('caretaker has no YES / LATER, only I\u2019ve seen it', pg.locator('#ct-ack-yes').count() == 0 and pg.is_visible('#ct-ack-seen'))
+    pg.click('#ct-ack-seen'); pg.wait_for_timeout(300)
+    a = pg.evaluate(ALERTS)['morning']
+    check('I\u2019ve seen it marks the alert seen', a.get('resolved') == 'seen' and a.get('ackType') == 'seen', a)
+    at('08:25')
+    a = pg.evaluate(ALERTS)['morning']
+    check('seen in time -> no emergency after 20 min', a.get('level') == 1 and a.get('resolved') == 'seen', a)
+    check('caretaker shows it as seen', 'Seen' in T('ct-alert-title'), T('ct-alert-title'))
+    pg.evaluate("window.__showScreen('medication-reminder')"); pg.wait_for_timeout(200)
+    pg.click('#mr-taken'); pg.wait_for_timeout(400); at('08:30')
+    check('patient takes the morning dose -> closed', pg.evaluate(ALERTS)['morning'].get('resolved') == 'taken', pg.evaluate(ALERTS)['morning'])
+    # 6) bedtime: nobody sees it for 20 minutes -> medical emergency
+    at('22:01'); snooze3()
+    check('bedtime alert raised', pg.evaluate(ALERTS).get('bedtime', {}).get('level') == 1)
+    at('22:15')
+    check('still waiting at 14 minutes', pg.evaluate(ALERTS)['bedtime'].get('level') == 1)
+    at('22:22')
+    bt = pg.evaluate(ALERTS)['bedtime']
+    check('unseen for 20 min -> medical emergency (level 2)', bt.get('level') == 2 and not bt.get('resolved'), bt)
+    at('22:40')
+    check('no third level any more', pg.evaluate(ALERTS)['bedtime'].get('level') == 2)
     pg.evaluate("window.__showScreen('caretaker-dashboard')"); pg.wait_for_timeout(300)
-    check('caretaker sees emergency', 'EMERGENCY' in T('ct-alert-title'), T('ct-alert-title'))
-    pg.click('#ct-ack-yes'); pg.wait_for_timeout(300)
-    a = pg.evaluate("Object.entries(JSON.parse(localStorage.getItem('gc.db.v1'))).filter(([k])=>k.startsWith('alerts/'))[0][1]")
-    check('family YES closes the alert', a.get('resolved') == 'ack' and a.get('ackType') == 'yes')
+    check('caretaker sees the medical emergency', 'MEDICAL EMERGENCY' in T('ct-alert-title'), T('ct-alert-title'))
+    # 7) taking the dose closes it
+    pg.evaluate("window.__showScreen('medication-reminder')"); pg.wait_for_timeout(200)
+    pg.click('#mr-taken'); pg.wait_for_timeout(400); at('22:41')
+    check('taking the dose closes the emergency', pg.evaluate(ALERTS)['bedtime'].get('resolved') == 'taken', pg.evaluate(ALERTS)['bedtime'])
     pg.locator('#profile').screenshot(path='/tmp/claude-0/al/app-profile.png') if False else None
     check('no page errors', not errs, errs)
     pg.evaluate("window.__showScreen('profile')"); pg.wait_for_timeout(300); pg.locator('#profile').screenshot(path='/tmp/gc-profile.png')

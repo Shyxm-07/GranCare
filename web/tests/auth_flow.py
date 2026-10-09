@@ -133,6 +133,26 @@ with sync_playwright() as p:
     kids = a.evaluate("window.__gc.S.profile.children||[]")
     check('son is added to the patient\'s alert contacts', any(k.get('phone') == SON['phone'] and k.get('relation') == 'Son' for k in kids), kids)
 
+    # ---- "seen" link: the son's app marks the patient's alert as seen ----
+    med_id = a.evaluate("window.__gc.S.meds[0].id")
+    day = a.evaluate("window.__gc.today()")
+    lk = f'{med_id}|morning|{day}'
+    token = a.evaluate("""(k) => window.__gcLinks.linkFor(k, {patientName: 'Lakshmi Raman', medName: 'Metformin', dueAt: new Date().toISOString()})""", lk)
+    check('patient phone creates a seen link for the dose', len(token or '') >= 32, token)
+    same = a.evaluate("(k) => window.__gcLinks.linkFor(k, {medName: 'x'})", lk)
+    check('one link per dose (no duplicates)', same == token, same)
+    check('son phone finds the same link', b.evaluate("(k) => window.__gcLinks.linkFor(k)", lk) == token)
+    link_doc = a.evaluate("(t) => window.__gcLinks.status(t)", token)
+    check('link record has the medicine and no seen time yet', link_doc.get('medName') == 'Metformin' and not link_doc.get('seenAt'), link_doc)
+    b.evaluate("window.__showScreen('caretaker-dashboard')")
+    a.evaluate("""([id, day]) => window.__gc.S.db.doc('alerts/' + day + '_' + id + '_morning')
+        .set({day: day, medId: id, medName: 'Metformin', slot: 'morning', level: 1, level1At: new Date().toISOString()})""", [med_id, day])
+    b.wait_for_timeout(3000)
+    alert = a.evaluate("([id, day]) => window.__gc.S.db.doc('alerts/' + day + '_' + id + '_morning').get().then(s => s.data())", [med_id, day])
+    check('opening the alert on the son\'s phone marks it seen', alert.get('resolved') == 'seen' and alert.get('ackBy') == SON['name'], alert)
+    link_doc = a.evaluate("(t) => window.__gcLinks.status(t)", token)
+    check('the link record is marked seen from the app', link_doc.get('seenVia') == 'app' and link_doc.get('seenAt'), link_doc)
+
     # ---- security rules (real emulator only) ----
     if not MOCK:
         c = new_phone()
@@ -146,6 +166,41 @@ with sync_playwright() as p:
         check('a stranger cannot make themselves the patient', res == 'permission-denied', res)
         res = c.evaluate("""() => window.__gcCloud.fs.collection('invites').get().then(() => 'list-allowed', e => e.code)""")
         check('invite codes cannot be listed', res == 'permission-denied', res)
+        # alertLinks: public by token, seen once, never listed, changed or deleted
+        import json, urllib.request, urllib.error
+        base = 'http://127.0.0.1:8080/v1/projects/demo-grancare/databases/(default)/documents/alertLinks'
+        def rest(method, url, body=None):
+            req = urllib.request.Request(url, method=method, data=json.dumps(body).encode() if body else None, headers={'Content-Type': 'application/json'})
+            try:
+                with urllib.request.urlopen(req) as r: return r.status
+            except urllib.error.HTTPError as e: return e.code
+        check('anyone with the link can read that alert', rest('GET', f'{base}/{token}') == 200)
+        check('alert links cannot be listed', rest('GET', base) in (403, 400), rest('GET', base))
+        check('a seen alert cannot be changed again', rest('PATCH', f'{base}/{token}?updateMask.fieldPaths=seenAt', {'fields': {'seenAt': {'stringValue': 'x'}}}) == 403)
+        check('alert links cannot be deleted', rest('DELETE', f'{base}/{token}') == 403)
+        check('a link cannot be created without signing in', rest('POST', base + '?documentId=' + 'z' * 32, {'fields': {'medName': {'stringValue': 'x'}}}) == 403)
+        res = c.evaluate("""(t) => window.__gcCloud.fs.doc('alertLinks/' + t).update({medName: 'changed'}).then(() => 'changed', e => e.code)""", token)
+        check('the medicine on a link cannot be changed', res == 'permission-denied', res)
+
+        # the free GitHub Pages "seen" page (site/seen) against the emulator
+        token2 = a.evaluate("""(k) => window.__gcLinks.linkFor(k, {patientName: 'Lakshmi Raman', medName: 'Metformin', dueAt: new Date().toISOString()})""", f'{med_id}|bedtime|{day}')
+        site = functools.partial(http.server.SimpleHTTPRequestHandler, directory=os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', 'site')))
+        site.log_message = lambda *a: None
+        sitehttpd = socketserver.TCPServer(('127.0.0.1', PORT + 1), site)
+        threading.Thread(target=sitehttpd.serve_forever, daemon=True).start()
+        d = browser.new_context().new_page()
+        d.route('**/firebase-config.js', lambda r: r.fulfill(content_type='text/javascript',
+            body="window.GC_FIREBASE_CONFIG={apiKey:'demo-key',projectId:'demo-grancare',firestoreHost:'127.0.0.1:8080'};"))
+        d.goto(f'http://127.0.0.1:{PORT + 1}/seen/#{token2}'); d.wait_for_timeout(2500)
+        body = d.inner_text('main')
+        check('seen page confirms to the son', 'Thank you' in body and 'Metformin' in body, body)
+        st = a.evaluate("(t) => window.__gcLinks.status(t)", token2)
+        check('seen page marks the link seen', st.get('seenVia') == 'link' and st.get('seenAt'), st)
+        d.reload(); d.wait_for_timeout(2500)
+        check('opening the link again says it is already seen', 'Already marked as seen' in d.inner_text('main'), d.inner_text('main'))
+        d.goto(f'http://127.0.0.1:{PORT + 1}/seen/#' + 'a' * 36); d.wait_for_timeout(2500)
+        check('unknown link shows not found', 'not found' in d.inner_text('main'), d.inner_text('main'))
+        sitehttpd.shutdown()
 
     check('no page errors', not errors, errors)
     browser.close()
